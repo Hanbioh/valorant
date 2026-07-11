@@ -309,52 +309,55 @@ if menu == "요원 상세 정보":
     
     if filtered_agents:
         sel_agent = st.selectbox("조회할 요원을 선택하세요", [a["displayName"] for a in filtered_agents])
-        agent = next(a for a in filtered_agents if a["displayName"] == sel_agent)
+        agent = next((a for a in filtered_agents if a["displayName"] == sel_agent), None)
         
-        role_name = agent['role']['displayName'] if agent['role'] else '없음'
-        
-        # 스킬 HTML 렌더링
-        abilities_html = ""
-        for ab in agent['abilities']:
-            icon_url = ab.get('displayIcon', '')
-            icon_img = f'<img src="{icon_url}" class="ability-icon"/>' if icon_url else ''
-            abilities_html += f"""
-            <div class="ability-card">
-                <div class="ability-header">
-                    {icon_img}
-                    <span class="ability-title">{ab["displayName"]}</span>
+        if agent:
+            role_name = agent['role']['displayName'] if agent['role'] else '없음'
+            
+            # 스킬 HTML 렌더링
+            abilities_html = ""
+            for ab in agent['abilities']:
+                icon_url = ab.get('displayIcon', '')
+                icon_img = f'<img src="{icon_url}" class="ability-icon"/>' if icon_url else ''
+                abilities_html += f"""
+                <div class="ability-card">
+                    <div class="ability-header">
+                        {icon_img}
+                        <span class="ability-title">{ab["displayName"]}</span>
+                    </div>
+                    <div class="ability-desc">{ab.get("description", "설명 정보가 없습니다.")}</div>
                 </div>
-                <div class="ability-desc">{ab.get("description", "설명 정보가 없습니다.")}</div>
+                """
+                
+            agent_html = f"""
+            <div class="agent-profile">
+                <div class="agent-info-card">
+                    <div class="cyber-header">AGENT PROFILE // {agent["displayName"].upper()}</div>
+                    <div class="agent-role">역할군: {role_name}</div>
+                    <div class="agent-desc">{agent["description"]}</div>
+                </div>
+                <div class="abilities-container">
+                    <div class="cyber-header">TACTICAL ABILITIES // 전술 스킬</div>
+                    {abilities_html}
+                </div>
             </div>
             """
             
-        agent_html = f"""
-        <div class="agent-profile">
-            <div class="agent-info-card">
-                <div class="cyber-header">AGENT PROFILE // {agent["displayName"].upper()}</div>
-                <div class="agent-role">역할군: {role_name}</div>
-                <div class="agent-desc">{agent["description"]}</div>
-            </div>
-            <div class="abilities-container">
-                <div class="cyber-header">TACTICAL ABILITIES // 전술 스킬</div>
-                {abilities_html}
-            </div>
-        </div>
-        """
-        
-        col1, col2 = st.columns([1.2, 2])
-        with col1:
-            st.markdown(f"""
-            <div class="agent-portrait-container">
-                <img src="{agent['fullPortrait']}" class="agent-portrait-img" />
-                <div class="corner-brn tl"></div>
-                <div class="corner-brn tr"></div>
-                <div class="corner-brn bl"></div>
-                <div class="corner-brn br"></div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown(agent_html, unsafe_allow_html=True)
+            col1, col2 = st.columns([1.2, 2])
+            with col1:
+                st.markdown(f"""
+                <div class="agent-portrait-container">
+                    <img src="{agent['fullPortrait']}" class="agent-portrait-img" />
+                    <div class="corner-brn tl"></div>
+                    <div class="corner-brn tr"></div>
+                    <div class="corner-brn bl"></div>
+                    <div class="corner-brn br"></div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.markdown(agent_html, unsafe_allow_html=True)
+        else:
+            st.write("요원 상세 정보를 불러올 수 없습니다.")
     else:
         st.write("해당하는 요원이 없습니다.")
 
@@ -363,77 +366,90 @@ elif menu == "무기 & 스킨":
     st.title("🔫 무기 및 스킨")
     st.link_button("🌐 val-skins.com에서 스킨 확인하기", "https://www.val-skins.com/?view=skins&filter=Vandal")
     
-    sel_w = st.selectbox("무기 선택", [w["displayName"] for w in weapons])
-    weapon = next(w for w in weapons if w["displayName"] == sel_w)
-    
-    # 상단 대형 스펙트럼 디스플레이
-    st.markdown(f"""
-    <div class="weapon-display-panel">
-        <img src="{weapon["displayIcon"]}" class="weapon-main-img"/>
-        <div class="cyber-header">WEAPON PROFILE // {weapon["displayName"].upper()}</div>
-        <div class="corner-brn tl"></div>
-        <div class="corner-brn tr"></div>
-        <div class="corner-brn bl"></div>
-        <div class="corner-brn br"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.write("### 🎨 보유 스킨 목록")
-    
-    skins_list = [s for s in weapon.get("skins", []) if s.get("displayIcon") and "Standard" not in s["displayName"]]
-    if skins_list:
-        skins_html = ""
-        for skin in skins_list:
-            skins_html += f"""
-            <div class="skin-card">
-                <img src="{skin["displayIcon"]}" />
-                <div class="skin-name">{skin["displayName"]}</div>
-            </div>
-            """
-        st.markdown(f"""
-        <div class="skin-grid">
-            {skins_html}
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.write("사용할 수 있는 특별 스킨이 없습니다.")
-
-# 3. 맵 정보 (미래지향적 전술 뷰어)
-elif menu == "🗺️ 맵 정보":
-    st.title("🗺️ 발로란트 맵 상세")
-    sel_map = st.selectbox("맵 선택", [m["displayName"] for m in maps if m.get("displayIcon")])
-    m_data = next(m for m in maps if m["displayName"] == sel_map)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("### 📍 전체 지도")
-        st.markdown(f"""
-        <div class="map-frame">
-            <div class="map-frame-inner">
-                <img src="{m_data["displayIcon"]}" style="width:100%; border-radius: 6px;"/>
-            </div>
-            <div class="corner-brn tl"></div>
-            <div class="corner-brn tr"></div>
-            <div class="corner-brn bl"></div>
-            <div class="corner-brn br"></div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        st.write("### 📸 맵 상세 사진")
-        if m_data.get("splash"):
+    if weapons:
+        sel_w = st.selectbox("무기 선택", [w["displayName"] for w in weapons])
+        weapon = next((w for w in weapons if w["displayName"] == sel_w), None)
+        
+        if weapon:
+            # 상단 대형 스펙트럼 디스플레이
             st.markdown(f"""
-            <div class="map-frame">
-                <div class="map-frame-inner">
-                    <img src="{m_data["splash"]}" style="width:100%; border-radius: 6px;"/>
-                </div>
+            <div class="weapon-display-panel">
+                <img src="{weapon.get("displayIcon", "")}" class="weapon-main-img"/>
+                <div class="cyber-header">WEAPON PROFILE // {weapon["displayName"].upper()}</div>
                 <div class="corner-brn tl"></div>
                 <div class="corner-brn tr"></div>
                 <div class="corner-brn bl"></div>
                 <div class="corner-brn br"></div>
             </div>
             """, unsafe_allow_html=True)
+            
+            st.write("### 🎨 보유 스킨 목록")
+            
+            skins_list = [s for s in weapon.get("skins", []) if s.get("displayIcon") and "Standard" not in s["displayName"]]
+            if skins_list:
+                skins_html = ""
+                for skin in skins_list:
+                    skins_html += f"""
+                    <div class="skin-card">
+                        <img src="{skin["displayIcon"]}" />
+                        <div class="skin-name">{skin["displayName"]}</div>
+                    </div>
+                    """
+                st.markdown(f"""
+                <div class="skin-grid">
+                    {skins_html}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.write("사용할 수 있는 특별 스킨이 없습니다.")
         else:
-            st.write("상세 사진을 불러올 수 없습니다.")
+            st.write("무기 상세 정보를 불러올 수 없습니다.")
+    else:
+        st.write("무기 데이터를 불러올 수 없습니다.")
+
+# 3. 맵 정보 (미래지향적 전술 뷰어)
+elif menu == "🗺️ 맵 정보":
+    st.title("🗺️ 발로란트 맵 상세")
+    map_list = [m["displayName"] for m in maps if m.get("displayIcon")]
+    if map_list:
+        sel_map = st.selectbox("맵 선택", map_list)
+        m_data = next((m for m in maps if m["displayName"] == sel_map), None)
+        
+        if m_data:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("### 📍 전체 지도")
+                st.markdown(f"""
+                <div class="map-frame">
+                    <div class="map-frame-inner">
+                        <img src="{m_data.get("displayIcon", "")}" style="width:100%; border-radius: 6px;"/>
+                    </div>
+                    <div class="corner-brn tl"></div>
+                    <div class="corner-brn tr"></div>
+                    <div class="corner-brn bl"></div>
+                    <div class="corner-brn br"></div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.write("### 📸 맵 상세 사진")
+                if m_data.get("splash"):
+                    st.markdown(f"""
+                    <div class="map-frame">
+                        <div class="map-frame-inner">
+                            <img src="{m_data["splash"]}" style="width:100%; border-radius: 6px;"/>
+                        </div>
+                        <div class="corner-brn tl"></div>
+                        <div class="corner-brn tr"></div>
+                        <div class="corner-brn bl"></div>
+                        <div class="corner-brn br"></div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.write("상세 사진을 불러올 수 없습니다.")
+        else:
+            st.write("맵 상세 정보를 불러올 수 없습니다.")
+    else:
+        st.write("맵 데이터를 불러올 수 없습니다.")
 
 # 4. 전적 확인
 elif menu == "📊 전적 검색":
