@@ -1,353 +1,593 @@
 import streamlit as st
 import requests
-import json
-import random
-import time
+import urllib.parse
 
-# 1. 페이지 페이지 설정 (와이드 모드)
-st.set_page_config(page_title="ValoPlan AI Hub", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="VALORANT - ION Edition")
 
-# 2. Valorant-API 데이터 로드
+# 1. 아이온(Ion) 테마 미래지향적 CSS 스타일링 적용
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+/* 전체 다크 스페이스 배경 */
+.stApp {
+    background: radial-gradient(circle at center, #101924 0%, #060a0f 100%) !important;
+    color: #ECE8E1 !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+/* 사이드바 - 아이온 화이트 메탈 케이스 느낌 */
+[data-testid="stSidebar"] {
+    background-color: #f5f7fa !important;
+    border-right: 3px solid #00F0FF !important;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.25) !important;
+}
+[data-testid="stSidebar"] * {
+    color: #0f1923 !important;
+}
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {
+    color: #0f1923 !important;
+    font-weight: 800 !important;
+}
+
+/* 미래지향적 헤더 네온 발광 효과 */
+h1, h2, h3, h4, h5, h6, .stSubheader {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.3) !important;
+    letter-spacing: 1px;
+}
+
+/* 입력 필드 및 선택 박스 스타일 - 화이트 티타늄 질감 + 하늘색 테두리 */
+div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {
+    background-color: #ffffff !important;
+    color: #0f1923 !important;
+    border: 2px solid #00F0FF !important;
+    border-radius: 8px !important;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15) !important;
+    font-weight: 600 !important;
+}
+div[data-baseweb="select"] *, input *, textarea * {
+    color: #0f1923 !important;
+}
+
+/* 버튼 - 아이온 에너지 코어 발광 효과 */
+button, .stButton button, .stLinkButton a {
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%) !important;
+    color: #0f1923 !important;
+    border: 2px solid #00F0FF !important;
+    border-radius: 8px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+button:hover, .stButton button:hover, .stLinkButton a:hover {
+    background: #00F0FF !important;
+    color: #0f1923 !important;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.8) !important;
+    transform: translateY(-2px);
+}
+
+/* 아코디언/익스팬더 - 사이버 글래스 모피즘 패널 */
+.streamlit-expanderHeader {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(0, 240, 255, 0.3) !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.1) !important;
+}
+.streamlit-expanderContent {
+    background-color: rgba(10, 18, 28, 0.85) !important;
+    border-left: 1px solid rgba(0, 240, 255, 0.3) !important;
+    border-right: 1px solid rgba(0, 240, 255, 0.3) !important;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.3) !important;
+    border-radius: 0 0 8px 8px !important;
+    color: #ece8e1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# API 로드
 @st.cache_data
-def get_valorant_data(endpoint):
+def get_data(endpoint):
     url = f"https://valorant-api.com/v1/{endpoint}?language=ko-KR"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json().get("data", [])
-    return []
+    res = requests.get(url)
+    return res.json().get("data", []) if res.status_code == 200 else []
 
-agents = get_valorant_data("agents")
-playable_agents = [a for a in agents if a.get("isPlayableCharacter")]
-maps = get_valorant_data("maps")
-weapons_data = get_valorant_data("weapons")
+agents = get_data("agents")
+maps = get_data("maps")
+weapons = get_data("weapons")
 
-if "valoplant_objects" not in st.session_state:
-    st.session_state.valoplant_objects = []
+menu = st.sidebar.radio("메뉴", ["요원 상세 정보", "무기 & 스킨", "🗺️ 맵 정보", "📊 전적 검색", "✈️ ION 비행기 게임"])
 
-st.sidebar.markdown("<h1 style='color: #ff4655; text-align: center;'>🔴 ValoPlan AI Hub</h1>", unsafe_allow_html=True)
-menu = st.sidebar.radio("메뉴를 선택하세요", ["요원 정보 (Agents)", "무기 & 스킨 (Weapons)", "🗺️ 작전 지휘소 (Strategy Board)"])
-
-# --- [메뉴 1: 요원 정보] ---
-if menu == "요원 정보 (Agents)":
-    st.title("👤 요원 정보")
-    agent_names = [a["displayName"] for a in playable_agents]
-    selected_agent_name = st.selectbox("요원을 선택하세요", agent_names)
-    agent = next(a for a in playable_agents if a["displayName"] == selected_agent_name)
+# 1. 요원 상세 정보 (검색 기능)
+if menu == "요원 상세 정보":
+    st.title("👤 요원 검색 및 정보")
+    query = st.text_input("요원 이름을 입력하세요 (예: 제트, 바이퍼 등)")
+    filtered_agents = [a for a in agents if a.get("isPlayableCharacter") and (not query or query.lower() in a["displayName"].lower())]
     
-    col1, col2 = st.columns([1, 2])
-    with col1: 
-        st.image(agent["fullPortrait"], use_container_width=True)
-    with col2:
-        st.subheader(f"역할군: {agent['role']['displayName'] if agent['role'] else '없음'}")
-        st.write(agent["description"])
-        
-        st.markdown("### ✨ 스킬 정보")
-        for ab in agent["abilities"]:
-            if ab.get("displayIcon"): 
-                icon_col, text_col = st.columns([1, 15])
-                with icon_col: st.image(ab["displayIcon"], width=40)
-                with text_col: st.markdown(f"**{ab['displayName']}**")
-            else:
-                st.markdown(f"**{ab['displayName']}**")
-            st.write(ab.get("description", "설명이 없습니다."))
-            st.markdown("---")
+    for agent in filtered_agents:
+        with st.expander(f"{agent['displayName']}"):
+            col1, col2 = st.columns([1, 4])
+            col1.image(agent['fullPortrait'], width=150)
+            for ab in agent['abilities']:
+                col2.markdown(f"**{ab['displayName']}**: {ab.get('description', '')}")
 
-# --- [메뉴 2: 무기 & 스킨 정보] ---
-elif menu == "무기 & 스킨 (Weapons)":
-    st.title("🔫 무기 및 스킨 정보")
-    selected_weapon_name = st.selectbox("무기를 선택하세요", [w["displayName"] for w in weapons_data])
-    weapon = next(w for w in weapons_data if w["displayName"] == selected_weapon_name)
-    st.image(weapon["displayIcon"], width=400)
+# 2. 무기 및 스킨 (val-skins.com 연동)
+elif menu == "무기 & 스킨":
+    st.title("🔫 무기 및 스킨")
+    st.link_button("🌐 val-skins.com에서 스킨 확인하기", "https://www.val-skins.com/?view=skins&filter=Vandal")
     
-    st.markdown("### 🎨 보유 스킨 목록")
-    cols = st.columns(3)
-    for idx, skin in enumerate(weapon.get("skins", [])):
+    sel_w = st.selectbox("무기 선택", [w["displayName"] for w in weapons])
+    weapon = next(w for w in weapons if w["displayName"] == sel_w)
+    for skin in weapon.get("skins", []):
         if skin["displayIcon"] and "Standard" not in skin["displayName"]:
-            with cols[idx % 3]:
-                st.image(skin["displayIcon"], use_container_width=True)
-                st.caption(skin["displayName"])
+            st.image(skin["displayIcon"], width=150)
+            st.write(skin["displayName"])
 
-# --- [메뉴 3: 🗺️ 작전 지휘소 (오류 원천 차단 완결판)] ---
-elif menu == "🗺️ 작전 지휘소 (Strategy Board)":
-    st.title("🎯 실시간 AI 고속 기동 시뮬레이터")
+# 3. 맵 정보
+elif menu == "🗺️ 맵 정보":
+    st.title("🗺️ 발로란트 맵 상세")
+    sel_map = st.selectbox("맵 선택", [m["displayName"] for m in maps if m.get("displayIcon")])
+    m_data = next(m for m in maps if m["displayName"] == sel_map)
     
-    col_ctrl, col_canvas = st.columns([1, 2.5])
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("### 📍 전체 지도")
+        st.image(m_data["displayIcon"], use_container_width=True)
+    with col2:
+        st.write("### 📸 맵 상세 사진")
+        if m_data.get("splash"):
+            st.image(m_data["splash"], use_container_width=True)
+        else:
+            st.write("상세 사진을 불러올 수 없습니다.")
 
-    with col_ctrl:
-        st.subheader("🎒 전술 에셋 & 진영 설정")
-        
-        map_names = [m["displayName"] for m in maps if m.get("displayIcon")]
-        selected_map_name = st.selectbox("전술을 세울 맵 선택", map_names)
-        v_map = next(m for m in maps if m["displayName"] == selected_map_name)
-        minimap_url = v_map["displayIcon"]
-        st.markdown("---")
-        
-        obj_type = st.radio("종류 선택", ["공격팀 요원", "수비팀 요원", "💥 스파이크 (Spike)", "🧱 세이지 장벽", "⭕ 브림스톤 궁극기", "🚪 전술 문"])
-        
-        active_icon_url = ""
-        display_name = obj_type
-        team = "neutral"
-        special_shape = "none"
-        chosen_weapon_name = "밴달"
-        
-        if "요원" in obj_type:
-            sel_agent = st.selectbox("요원 선택", [a["displayName"] for a in playable_agents])
-            agent_data = next(a for a in playable_agents if a["displayName"] == sel_agent)
-            active_icon_url = agent_data["displayIcon"]
-            display_name = sel_agent
-            team = "공격팀" if "공격" in obj_type else "수비팀"
-            
-            w_names = [w["displayName"] for w in weapons_data] + ["체임버: 역작", "체임버: 헤드헌터"]
-            default_idx = w_names.index("밴달") if "밴달" in w_names else 0
-            sel_weapon = st.selectbox(f"{sel_agent}의 무기 선택", w_names, index=default_idx)
-            chosen_weapon_name = sel_weapon
-            
-        elif obj_type == "💥 스파이크 (Spike)":
-            team = "공격팀"
-            display_name = "스파이크"
-            special_shape = "spike"
-        elif obj_type == "🧱 세이지 장벽":
-            special_shape = "rect"
-            display_name = "세이지 장벽"
-        elif obj_type == "⭕ 브림스톤 궁극기":
-            special_shape = "circle"
-            display_name = "브림스톤 궁"
-        elif obj_type == "🚪 전술 문":
-            special_shape = "door"
-            display_name = "전술 문"
-        
-        if st.button("➕ 지도 위에 에셋 추가", use_container_width=True):
-            existing_count = len(st.session_state.valoplant_objects)
-            spawn_offset = (existing_count * 25) % 100
-            
-            st.session_state.valoplant_objects.append({
-                "id": int(time.time() * 1000) + random.randint(0, 999),
-                "type": obj_type,
-                "shape": special_shape,
-                "name": display_name,
-                "team": team,
-                "weapon": chosen_weapon_name,
-                "hp": 150,
-                "x": 250 + spawn_offset,
-                "y": 250 + spawn_offset,
-                "scaleX": 1.0, "scaleY": 1.0, "angle": 0
-            })
-            st.rerun()
-            
-        if st.button("🧹 배치 초기화", use_container_width=True):
-            st.session_state.valoplant_objects = []
-            st.rerun()
+# 4. 전적 확인
+elif menu == "📊 전적 검색":
+    st.title("📊 전적 확인")
+    player_name = st.text_input("닉네임#태그를 입력하세요")
+    if st.button("전적 조회") and player_name:
+        if "#" in player_name:
+            name_part, tag_part = player_name.split("#")
+            url = f"https://tracker.gg/valorant/profile/riot/{urllib.parse.quote(name_part)}%23{tag_part}/overview"
+            st.link_button("🔗 Tracker.gg에서 확인하기", url)
+        else:
+            st.error("닉네임#태그 형식으로 입력해주세요.")
 
-    with col_canvas:
-        st.subheader(f"🗺️ {selected_map_name} 실시간 전술 전장")
-        
-        state_json = st.text_area("Canvas Sync", value=json.dumps(st.session_state.valoplant_objects), label_visibility="collapsed")
-        try:
-            st.session_state.valoplant_objects = json.loads(state_json)
-        except:
-            pass
+# 5. 미니 비행기 게임 (아이온 스타파이터)
+elif menu == "✈️ ION 비행기 게임":
+    st.title("⚡ ION STARFIGHTER: 미니 비행기 게임")
+    st.markdown("마우스를 움직여 **아이온 전투기**를 조종하세요. 에너지 레이저가 **자동으로 발사**됩니다!")
+    st.markdown("날아오는 **에너지 노드(적)**를 모두 파괴하고 아이온 실드를 보호해 전장을 정복하세요.")
 
-        objects_json = json.dumps(st.session_state.valoplant_objects)
+    # HTML5 Canvas + Web Audio API 사운드 게임 구현
+    game_html = """
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background: #080d14;
+                color: #ffffff;
+                font-family: sans-serif;
+                overflow: hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+            #gameCanvas {
+                border: 3px solid #00F0FF;
+                border-radius: 12px;
+                box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+                background: radial-gradient(circle at center, #101924 0%, #060a0f 100%);
+                cursor: none; /* 실제 마우스 포인터 가리고 비행기로 대체 */
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        <script>
+            const canvas = document.getElementById("gameCanvas");
+            const ctx = canvas.getContext("2d");
 
-        # 🚨 브라우저 이미지 검은색 에러 차단: 텍스트 및 벡터 도형 기반 생성 시스템
-        elements_js = ""
-        for obj in st.session_state.valoplant_objects:
-            if obj["shape"] == "none": # 요원 추가
-                borderColor = '#ff4655' if obj['team'] == '공격팀' else '#00ea9a'
-                short_name = obj["name"][:2] # 이름 앞 두 글자 추출 (ex: 제트, 피닉스)
+            let player = {
+                x: 400,
+                y: 400,
+                size: 20,
+                shield: 100,
+                maxShield: 100
+            };
+
+            let bullets = [];
+            let enemies = [];
+            let particles = [];
+            let stars = [];
+            let score = 0;
+            let gameOver = false;
+            let gameStarted = false;
+            let lastShotTime = 0;
+            let fireRate = 180; // 발사 속도 (ms)
+
+            // 우주 배경의 별들 세팅
+            for (let i = 0; i < 50; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 1,
+                    speed: Math.random() * 3 + 1
+                });
+            }
+
+            // 마우스 움직임 동기화
+            canvas.addEventListener("mousemove", (e) => {
+                const rect = canvas.getBoundingClientRect();
+                player.x = e.clientX - rect.left;
+                player.y = e.clientY - rect.top;
                 
-                elements_js += f"""
-                let bgCircle_{obj['id']} = new fabric.Circle({{ radius: 18, fill: '#0f1923', stroke: '{borderColor}', strokeWidth: 3, originX: 'center', originY: 'center' }});
-                let text_{obj['id']} = new fabric.Text('{short_name}', {{ fontSize: 13, fill: '#ffffff', fontWeight: 'bold', originX: 'center', originY: 'center' }});
-                
-                let group_{obj['id']} = new fabric.Group([bgCircle_{obj['id']}, text_{obj['id']}], {{
-                    left: {obj["x"]}, top: {obj["y"]}, originX: 'center', originY: 'center',
-                    scaleX: {obj["scaleX"]}, scaleY: {obj["scaleY"]}, angle: {obj["angle"]},
-                    cornerSize: 8, cornerColor: '#ffffff', transparentCorners: false
-                }});
-                group_{obj['id']}.objData = {json.dumps(obj)};
-                group_{obj['id']}.isAgent = true; group_{obj['id']}.team = '{obj["team"]}'; group_{obj['id']}.hp = {obj["hp"]};
-                group_{obj['id']}.weapon = '{obj["weapon"]}'; group_{obj['id']}.agentName = '{obj["name"]}';
-                canvas.add(group_{obj['id']});
-                """
-            elif obj["shape"] == "spike": # 스파이크 추가
-                elements_js += f"""
-                let spCircle_{obj['id']} = new fabric.Circle({{ radius: 12, fill: '#ff4655', stroke: '#ffffff', strokeWidth: 2, originX: 'center', originY: 'center' }});
-                let spText_{obj['id']} = new fabric.Text('💣', {{ fontSize: 12, originX: 'center', originY: 'center' }});
-                let spike_{obj['id']} = new fabric.Group([spCircle_{obj['id']}, spText_{obj['id']}], {{ left: {obj["x"]}, top: {obj["y"]}, originX: 'center', originY: 'center' }});
-                spike_{obj['id']}.objData = {json.dumps(obj)};
-                canvas.add(spike_{obj['id']});
-                """
-            else: # 범위 스킬 추가
-                shape_init = ""
-                if obj["shape"] == "rect": shape_init = "new fabric.Rect({ width: 80, height: 18, fill: 'rgba(0, 230, 230, 0.5)', stroke: '#00ffff', strokeWidth: 2 })"
-                elif obj["shape"] == "circle": shape_init = "new fabric.Circle({ radius: 35, fill: 'rgba(255, 70, 0, 0.3)', stroke: '#ff4655', strokeWidth: 2 })"
-                elif obj["shape"] == "door": shape_init = "new fabric.Rect({ width: 45, height: 9, fill: 'rgba(140, 70, 20, 0.7)', stroke: '#ffaa00', strokeWidth: 2 })"
-                
-                if shape_init:
-                    elements_js += f"""
-                    let shape_{obj['id']} = {shape_init};
-                    shape_{obj['id']}.set({{ left: {obj["x"]}, top: {obj["y"]}, originX: 'center', originY: 'center', scaleX: {obj["scaleX"]}, scaleY: {obj["scaleY"]}, angle: {obj["angle"]} }});
-                    shape_{obj['id']}.setControlsVisibility({{ mt: true, mb: true, ml: true, mr: true, bl: true, br: true, tl: true, tr: true, mtr: true }});
-                    shape_{obj['id']}.objData = {json.dumps(obj)};
-                    canvas.add(shape_{obj['id']});
-                    """
+                if (player.x < 20) player.x = 20;
+                if (player.x > canvas.width - 20) player.x = canvas.width - 20;
+                if (player.y < 20) player.y = 20;
+                if (player.y > canvas.height - 20) player.y = canvas.height - 20;
+            });
 
-        js_code = """
-        const canvas = new fabric.Canvas('cv', { selection: true });
-        const logBoard = document.getElementById('status-board');
-        
-        // 🚨 충돌 캔버스 데이터 추출을 가볍게 하기 위해 500x500으로 스케일링 일치
-        const collisionCanvas = document.createElement('canvas');
-        collisionCanvas.width = 500; collisionCanvas.height = 500;
-        const colCtx = collisionCanvas.getContext('2d', { willReadFrequently: true });
-
-        const mapImage = new Image();
-        mapImage.crossOrigin = "Anonymous";
-        mapImage.src = 'MINIMAP_URL_PLACEHOLDER';
-        mapImage.onload = function() {
-            colCtx.drawImage(mapImage, 0, 0, 500, 500);
-            
-            fabric.Image.fromURL('MINIMAP_URL_PLACEHOLDER', function(fImg) {
-                fImg.set({ selectable: false, evented: false, left: 0, top: 0, width: 500, height: 500 });
-                canvas.setBackgroundImage(fImg, canvas.renderAll.bind(canvas));
-            }, { crossOrigin: 'anonymous' });
-        };
-
-        function updateParent() {
-            const objs = canvas.getObjects(); let updatedData = [];
-            objs.forEach(o => {
-                if(o.objData) {
-                    let d = o.objData; d.x = o.left; d.y = o.top; d.scaleX = o.scaleX; d.scaleY = o.scaleY; d.angle = o.angle;
-                    updatedData.push(d);
+            // 화면 클릭하여 시작 및 재시작
+            canvas.addEventListener("click", () => {
+                if (gameOver) {
+                    resetGame();
+                } else if (!gameStarted) {
+                    gameStarted = true;
+                    if (audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
                 }
             });
-            const ta = window.parent.document.querySelector('textarea');
-            if(ta) { ta.value = JSON.stringify(updatedData); ta.dispatchEvent(new Event('input', { bubbles: true })); }
-        }
-        canvas.on('object:modified', updateParent);
 
-        ELEMENTS_JS_PLACEHOLDER
+            // Web Audio API 기반 효과음 생성 시스템
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            function playSound(freq, duration, type = 'sawtooth', endFreq = null) {
+                try {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    if (endFreq) {
+                        osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + duration);
+                    }
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + duration);
+                } catch(e) {}
+            }
 
-        const weaponStats = {
-            "밴달": { body: 40, head: 160, fireDelay: 1 }, "팬텀": { body: 35, head: 140, fireDelay: 1 },
-            "오퍼레이터": { body: 150, head: 255, fireDelay: 4 }, "셰리프": { body: 55, head: 145, fireDelay: 2 },
-            "체임버: 역작": { body: 150, head: 255, fireDelay: 2 }, "체임버: 헤드헌터": { body: 55, head: 159, fireDelay: 1.5 }
-        };
+            function resetGame() {
+                player.shield = 100;
+                bullets = [];
+                enemies = [];
+                particles = [];
+                score = 0;
+                gameOver = false;
+                gameStarted = true;
+            }
 
-        // 🚨 벽 검지 로직 정밀 보정 (검은 여백 우회)
-        function isWalkable(x, y) {
-            if (x < 10 || x > 490 || y < 10 || y > 490) return false;
-            try {
-                let pixel = colCtx.getImageData(x, y, 1, 1).data;
-                if (pixel[3] < 35) return false; 
-            } catch(e) { return true; }
-            return true;
-        }
-
-        let battleInterval;
-        function startAiBattle() {
-            logBoard.innerHTML = "🎬 <b>[전술 링크] 요원 정보 및 총기 시스템 교전을 시작합니다.</b><br><br>";
-            let liveAgents = canvas.getObjects().filter(o => o.isAgent);
-            if (liveAgents.filter(a => a.team === "공격팀").length === 0 || liveAgents.filter(a => a.team === "수비팀").length === 0) return;
-            liveAgents.forEach(a => a.set('selectable', false));
-
-            battleInterval = setInterval(() => {
-                let attackers = liveAgents.filter(a => a.team === "공격팀" && a.hp > 0);
-                let defenders = liveAgents.filter(a => a.team === "수비팀" && a.hp > 0);
-
-                if (attackers.length === 0 || defenders.length === 0) {
-                    clearInterval(battleInterval); return;
+            function spawnEnemy() {
+                if (Math.random() < 0.045) {
+                    enemies.push({
+                        x: Math.random() * (canvas.width - 40) + 20,
+                        y: -20,
+                        speed: Math.random() * 2.5 + 2,
+                        size: Math.random() * 12 + 10,
+                        hp: 1,
+                        color: 'hsl(' + (Math.random() * 40 + 340) % 360 + ', 90%, 50%)' // 에너지 코어 적
+                    });
                 }
+            }
 
-                liveAgents.forEach(agent => {
-                    if (agent.hp <= 0) return;
-                    if (!agent.fireCooldown) agent.fireCooldown = 0;
-                    if (agent.fireCooldown > 0) agent.fireCooldown--;
+            function checkCollision(r1, r2) {
+                let dist = Math.hypot(r1.x - r2.x, r1.y - r2.y);
+                return dist < (r1.size || 20) + (r2.size || 20);
+            }
 
-                    let targets = agent.team === "공격팀" ? defenders : attackers;
-                    let closestEnemy = null; let minDist = 9999;
-                    targets.forEach(t => {
-                        let d = Math.hypot(t.left - agent.left, t.top - agent.top);
-                        if (d < minDist) { minDist = d; closestEnemy = t; }
+            function createExplosion(x, y, color) {
+                for (let i = 0; i < 15; i++) {
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        size: Math.random() * 3 + 1,
+                        alpha: 1,
+                        decay: Math.random() * 0.03 + 0.015,
+                        color: color
+                    });
+                }
+            }
+
+            function update() {
+                // 우주 배경 스크롤링
+                stars.forEach(star => {
+                    star.y += star.speed;
+                    if (star.y > canvas.height) {
+                        star.y = 0;
+                        star.x = Math.random() * canvas.width;
+                    }
+                });
+
+                if (gameStarted && !gameOver) {
+                    // 무기 발사 (자동)
+                    let now = Date.now();
+                    if (now - lastShotTime > fireRate) {
+                        // 아이온 특유의 듀얼 레이저 발사
+                        bullets.push({ x: player.x - 15, y: player.y - 10, vy: -12, size: 3 });
+                        bullets.push({ x: player.x + 15, y: player.y - 10, vy: -12, size: 3 });
+                        playSound(650, 0.09, 'triangle', 180);
+                        lastShotTime = now;
+                    }
+
+                    // 투사체 이동
+                    bullets.forEach((b, index) => {
+                        b.y += b.vy;
+                        if (b.y < -10) bullets.splice(index, 1);
                     });
 
-                    if (closestEnemy) {
-                        let angle = Math.atan2(closestEnemy.top - agent.top, closestEnemy.left - agent.left);
-                        let moveSpeed = 12;
-                        let nextX = agent.left + Math.cos(angle) * moveSpeed;
-                        let nextY = agent.top + Math.sin(angle) * moveSpeed;
+                    // 적 스폰
+                    spawnEnemy();
+
+                    // 적 이동 및 충돌
+                    enemies.forEach((e, eIndex) => {
+                        e.y += e.speed;
                         
-                        if (isWalkable(nextX, nextY)) {
-                            agent.left = nextX; agent.top = nextY;
-                        } else {
-                            agent.left += (Math.random() - 0.5) * 25;
-                            agent.top += (Math.random() - 0.5) * 25;
+                        // 아군 비행기와 충돌
+                        if (checkCollision(player, e)) {
+                            createExplosion(e.x, e.y, '#FF0055');
+                            createExplosion(player.x, player.y, '#00F0FF');
+                            enemies.splice(eIndex, 1);
+                            player.shield -= 20;
+                            playSound(120, 0.25, 'sawtooth', 35);
+                            
+                            if (player.shield <= 0) {
+                                player.shield = 0;
+                                gameOver = true;
+                                playSound(50, 0.7, 'sawtooth', 10);
+                            }
+                            return;
                         }
-                        agent.setCoords();
 
-                        if (minDist < 150 && agent.fireCooldown <= 0) {
-                            let stat = weaponStats[agent.weapon] || { body: 30, head: 90, fireDelay: 2 };
-                            agent.fireCooldown = stat.fireDelay;
-                            let isHeadshot = Math.random() < 0.25;
-                            let dmg = isHeadshot ? stat.head : stat.body;
+                        // 레이저와 충돌
+                        bullets.forEach((b, bIndex) => {
+                            let dist = Math.hypot(e.x - b.x, e.y - b.y);
+                            if (dist < e.size + b.size) {
+                                createExplosion(e.x, e.y, '#00F0FF');
+                                playSound(480, 0.12, 'sine', 700);
+                                enemies.splice(eIndex, 1);
+                                bullets.splice(bIndex, 1);
+                                score += 100;
+                            }
+                        });
 
-                            closestEnemy.hp -= dmg;
-                            let hitText = isHeadshot ? "<span style='color:#ffea00;'><b>[HEADSHOT 🎯]</b></span>" : "<b>[BODY]</b>";
-                            logBoard.innerHTML += `💥 ${hitText} ${agent.team} <span style='color:#fff;'><b>${agent.agentName}</b></span> 👉 적 HP: ${Math.max(0, closestEnemy.hp)}<br>`;
-                            logBoard.scrollTop = logBoard.scrollHeight;
+                        if (e.y > canvas.height + 20) enemies.splice(eIndex, 1);
+                    });
 
-                            if (closestEnemy.hp <= 0) {
-                                logBoard.innerHTML += `💀 <b>[제압]</b> ${agent.team} <b>${agent.agentName}</b>가 적 <b>${closestEnemy.agentName}</b>를 처치했습니다.<br>`;
-                                closestEnemy.set({ opacity: 0.15 });
-                            }}
-                    }}
+                    // 파티클 이동
+                    particles.forEach((p, index) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.alpha -= p.decay;
+                        if (p.alpha <= 0) particles.splice(index, 1);
+                    });
+                }
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // 별들 그리기
+                ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+                stars.forEach(star => {
+                    ctx.fillRect(star.x, star.y, star.size, star.size);
                 });
-                canvas.renderAll();
-            }, 150);
-        }
-        """
-        js_code = js_code.replace("MINIMAP_URL_PLACEHOLDER", minimap_url).replace("ELEMENTS_JS_PLACEHOLDER", elements_js)
 
-        # 📺 [해결] CSS Viewport Scale 레이아웃을 주입하여 가로/세로 잘림 현상을 100% 영구 해결
-        board_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-            <style>
-                body {{ margin:0; padding:0; background:#0f1923; font-family:sans-serif; overflow:hidden; }}
-                /* 화면 크기에 맞춰 전체 요소를 100% 비율로 축소 자동매핑 */
-                .main-wrapper {{ display: flex; flex-direction: row; gap: 15px; width: 100vw; height: 100vh; max-height: 520px; padding: 5px; box-sizing: border-box; }}
+                // 사이버네틱 무한 그리드 격자 (아이온 테마)
+                ctx.strokeStyle = "rgba(0, 240, 255, 0.05)";
+                ctx.lineWidth = 1;
+                for (let x = 0; x < canvas.width; x += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                let offset = (Date.now() / 25) % 40;
+                for (let y = offset; y < canvas.height; y += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // 대기(시작) 화면
+                if (!gameStarted) {
+                    ctx.textAlign = "center";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 28px sans-serif";
+                    ctx.shadowColor = "#00F0FF";
+                    ctx.shadowBlur = 15;
+                    ctx.fillText("ION STARFIGHTER", canvas.width / 2, canvas.height / 2 - 40);
+                    
+                    ctx.font = "16px sans-serif";
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = "#8ba2b5";
+                    ctx.fillText("마우스로 조종하면 에너지가 자동 발사됩니다.", canvas.width / 2, canvas.height / 2 + 10);
+                    ctx.fillStyle = "#00F0FF";
+                    ctx.fillText("미션을 개시하려면 화면을 클릭하세요", canvas.width / 2, canvas.height / 2 + 50);
+                    return;
+                }
+
+                // 탄환 그리기
+                bullets.forEach(b => {
+                    ctx.shadowColor = "#00F0FF";
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = "#00F0FF";
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.shadowBlur = 0;
+
+                // 파티클 그리기
+                particles.forEach(p => {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                });
+                ctx.globalAlpha = 1.0;
+
+                // 에너지 코어 (적) 그리기
+                enemies.forEach(e => {
+                    ctx.save();
+                    ctx.translate(e.x, e.y);
+                    
+                    ctx.shadowColor = "#FF0055";
+                    ctx.shadowBlur = 8;
+                    ctx.fillStyle = e.color;
+                    
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        ctx.rotate(Math.PI / 4);
+                        ctx.lineTo(e.size, 0);
+                        ctx.lineTo(e.size / 2, e.size / 2);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // 중앙 핵
+                    ctx.fillStyle = "#ffffff";
+                    ctx.beginPath();
+                    ctx.arc(0, 0, e.size / 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                });
+                ctx.shadowBlur = 0;
+
+                // 아이온 테마 전전투기 (Sleek White + Glowing Cyan Core)
+                if (!gameOver) {
+                    ctx.save();
+                    ctx.translate(player.x, player.y);
+
+                    // 엔진 플레임 (하늘색 불꽃)
+                    ctx.shadowColor = "#00F0FF";
+                    ctx.shadowBlur = 12;
+                    ctx.fillStyle = "#00F0FF";
+                    ctx.beginPath();
+                    ctx.moveTo(-5, 14);
+                    ctx.lineTo(0, 24 + Math.random() * 8);
+                    ctx.lineTo(5, 14);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 티타늄 화이트 전방향 날개 본체
+                    ctx.shadowColor = "rgba(0, 240, 255, 0.2)";
+                    ctx.shadowBlur = 5;
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.beginPath();
+                    ctx.moveTo(0, -22); 
+                    ctx.lineTo(-18, 14); 
+                    ctx.lineTo(-5, 7);   
+                    ctx.lineTo(0, 11);   
+                    ctx.lineTo(5, 7);    
+                    ctx.lineTo(18, 14);  
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 아이온 특유의 다크 코어 캐노피
+                    ctx.fillStyle = "#0a121c";
+                    ctx.beginPath();
+                    ctx.moveTo(0, -10);
+                    ctx.lineTo(-3, 0);
+                    ctx.lineTo(0, 3);
+                    ctx.lineTo(3, 0);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 중앙의 빛나는 청록색 아이온 에너지 구체 (Energy Core)
+                    ctx.shadowColor = "#00F0FF";
+                    ctx.shadowBlur = 15;
+                    ctx.fillStyle = "#00F0FF";
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 에너지 코어 화이트 스파크
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                    ctx.shadowBlur = 0;
+                }
+
+                // HUD 인터페이스
+                ctx.textAlign = "left";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 13px sans-serif";
+                ctx.fillText("ION SHIELD: ", 20, 30);
                 
-                .map-section {{ width: 500px; display: flex; flex-direction: column; }}
-                .canvas-container {{ position: relative; width: 500px; height: 500px; border: 2px solid #ff4655; border-radius: 6px; background-color: #1a222b; overflow: hidden; }}
-                canvas {{ position: absolute; top: 0; left: 0; }}
+                // 실드 바 구조
+                ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+                ctx.fillRect(110, 18, 150, 14);
                 
-                #battle-btn {{ margin-top: 8px; width: 500px; padding: 10px; background: #ff4655; color: white; border: none; font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer; }}
+                ctx.fillStyle = player.shield > 30 ? "#00F0FF" : "#FF0055";
+                ctx.fillRect(110, 18, (player.shield / player.maxShield) * 150, 14);
                 
-                .log-section {{ flex: 1; height: 518px; min-width: 250px; }}
-                #status-board {{ 
-                    width: 100%; height: 100%; background: #111822; border-radius: 6px; padding: 12px; 
-                    font-size: 13px; color: #0ea; overflow-y: auto; border: 1px solid #2f3e4e; border-left: 5px solid #ff4655; box-sizing: border-box; line-height: 1.5;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="main-wrapper">
-                <div class="map-section">
-                    <div class="canvas-container">
-                        <canvas id="cv" width="500" height="500"></canvas>
-                    </div>
-                    <button id="battle-btn" onclick="startAiBattle()">🚀 픽셀 충돌 엔진 실시간 전투 개시</button>
-                </div>
-                <div class="log-section">
-                    <div id="status-board">💬 대원을 배치하고 전투를 개시하세요. (얼굴 투명 버그 해결 토큰 적용)</div>
-                </div>
-            </div>
-            <script>{js_code}</script>
-        </body>
-        </html>
-        """
-        # 스트림릿 컴포넌트 프레임을 가로 100%, 세로 550px 콤팩트 핏으로 제한하여 잘림 완벽 해결
-        st.components.v1.html(board_html, height=550)
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(player.shield + "%", 270, 30);
+
+                // 스코어
+                ctx.textAlign = "right";
+                ctx.fillText("SCORE: " + score, canvas.width - 20, 30);
+
+                // 게임 종료 화면
+                if (gameOver) {
+                    ctx.fillStyle = "rgba(8, 13, 20, 0.85)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.textAlign = "center";
+                    ctx.fillStyle = "#FF0055";
+                    ctx.font = "bold 32px sans-serif";
+                    ctx.shadowColor = "#FF0055";
+                    ctx.shadowBlur = 15;
+                    ctx.fillText("ION SHIELD DEPLETED", canvas.width / 2, canvas.height / 2 - 20);
+                    
+                    ctx.fillStyle = "#00F0FF";
+                    ctx.font = "bold 20px sans-serif";
+                    ctx.shadowColor = "#00F0FF";
+                    ctx.fillText("FINAL SCORE: " + score, canvas.width / 2, canvas.height / 2 + 20);
+                    
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "14px sans-serif";
+                    ctx.shadowBlur = 0;
+                    ctx.fillText("미션을 다시 수행하려면 클릭하세요", canvas.width / 2, canvas.height / 2 + 70);
+                }
+            }
+
+            function loop() {
+                update();
+                draw();
+                requestAnimationFrame(loop);
+            }
+
+            loop();
+        </script>
+    </body>
+    </html>
+    """
+    st.components.v1.html(game_html, height=520)
