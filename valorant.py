@@ -1,16 +1,124 @@
 import streamlit as st
 import requests
 import urllib.parse
+import base64
 
-st.set_page_config(layout="wide", page_title="VALORANT - ION Edition")
+# 0. 세션 상태 초기화 (이벤트 제어용)
+for key in ["event_lightning", "event_ruby", "event_champions", "event_jett", "event_gold", "event_unknown"]:
+    if key not in st.session_state:
+        st.session_state[key] = False
+
+st.set_page_config(layout="wide", page_title="VALORANT - VCT Special Edition")
+
+# 이미지 로컬 -> Base64 변환 헬퍼 함수
+def get_base64_image(image_path):
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except Exception:
+        return ""
+
+jett_base64 = get_base64_image("jett_champions.png")
+
+# 이벤트 기반 동적 CSS 설정
+bg_css = ""
+if st.session_state.event_ruby:
+    bg_css = """
+    .stApp {
+        background: radial-gradient(circle at center, #3d060f 0%, #150205 100%) !important;
+        background-image: 
+            radial-gradient(circle at center, rgba(61, 6, 15, 0.9) 0%, #150205 100%),
+            linear-gradient(rgba(255, 70, 85, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 70, 85, 0.02) 1px, transparent 1px) !important;
+        color: #ECE8E1 !important;
+    }
+    h1, h2, h3, h4, h5, h6, .stSubheader, .cyber-header {
+        color: #FF4655 !important;
+        text-shadow: 0 0 10px rgba(255, 70, 85, 0.8), 0 0 20px rgba(255, 70, 85, 0.3) !important;
+    }
+    div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {
+        border: 2px solid #FF4655 !important;
+        box-shadow: 0 0 10px rgba(255, 70, 85, 0.15) !important;
+    }
+    button, .stButton button, .stLinkButton a {
+        border: 2px solid #FF4655 !important;
+        box-shadow: 0 0 12px rgba(255, 70, 85, 0.3) !important;
+    }
+    button:hover, .stButton button:hover, .stLinkButton a:hover {
+        background: #FF4655 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 25px rgba(255, 70, 85, 0.8) !important;
+    }
+    .corner-brn {
+        border-color: #FF4655 !important;
+    }
+    .agent-info-card, .abilities-container, .weapon-display-panel, .map-frame, .stats-search-panel {
+        border-color: rgba(255, 70, 85, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(61, 6, 15, 0.5) !important;
+    }
+    """
+elif st.session_state.event_champions:
+    bg_css = """
+    .stApp {
+        background: radial-gradient(circle at center, #1b160a 0%, #080703 100%) !important;
+        background-image: 
+            radial-gradient(circle at center, rgba(46, 36, 12, 0.95) 0%, #080703 100%),
+            linear-gradient(rgba(212, 175, 55, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(212, 175, 55, 0.02) 1px, transparent 1px) !important;
+    }
+    h1, h2, h3, h4, h5, h6, .stSubheader, .cyber-header {
+        color: #D4AF37 !important;
+        text-shadow: 0 0 10px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.4) !important;
+    }
+    div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {
+        border: 2px solid #D4AF37 !important;
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.2) !important;
+    }
+    button, .stButton button, .stLinkButton a {
+        border: 2px solid #D4AF37 !important;
+        box-shadow: 0 0 12px rgba(212, 175, 55, 0.3) !important;
+    }
+    button:hover, .stButton button:hover, .stLinkButton a:hover {
+        background: #D4AF37 !important;
+        color: #0f1923 !important;
+        box-shadow: 0 0 25px rgba(212, 175, 55, 0.8) !important;
+    }
+    .corner-brn {
+        border-color: #D4AF37 !important;
+    }
+    .agent-info-card, .abilities-container, .weapon-display-panel, .map-frame, .stats-search-panel {
+        border-color: rgba(212, 175, 55, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(46, 36, 12, 0.5) !important;
+    }
+    """
+
+# 골드 변환 마우스 호버 효과
+gold_css = ""
+if st.session_state.event_gold:
+    gold_css = """
+    .stApp img {
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+    .stApp img:hover {
+        filter: sepia(1) saturate(5) hue-rotate(10deg) brightness(1.2) drop-shadow(0 0 18px #D4AF37) !important;
+        transform: scale(1.05) !important;
+    }
+    .agent-portrait-container:hover, .map-frame:hover, .skin-card:hover, .jett-center-panel:hover {
+        border-color: #D4AF37 !important;
+        box-shadow: 0 0 25px rgba(212, 175, 55, 0.5) !important;
+    }
+    .agent-portrait-container:hover .corner-brn, .map-frame:hover .corner-brn, .jett-center-panel:hover .corner-brn {
+        border-color: #D4AF37 !important;
+    }
+    """
 
 # 1. 아이온(Ion) 테마 전체적인 미래지향적 사이버네틱 CSS 스타일링 적용
-st.markdown("""
+st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Outfit:wght@300;400;600;800&display=swap');
 
 /* 전체 다크 스페이스 배경 및 그리드 격자 */
-.stApp {
+.stApp {{
     background-color: #060a0f !important;
     background-image: 
         radial-gradient(circle at center, rgba(16, 25, 36, 0.85) 0%, #060a0f 100%),
@@ -19,48 +127,48 @@ st.markdown("""
     background-size: 100% 100%, 35px 35px, 35px 35px !important;
     color: #ECE8E1 !important;
     font-family: 'Outfit', sans-serif !important;
-}
+}}
 
 /* 사이드바 - 아이온 화이트 메탈 케이스 느낌 */
-[data-testid="stSidebar"] {
+[data-testid="stSidebar"] {{
     background-color: #f5f7fa !important;
     border-right: 3px solid #00F0FF !important;
     box-shadow: 0 0 20px rgba(0, 240, 255, 0.25) !important;
-}
-[data-testid="stSidebar"] * {
+}}
+[data-testid="stSidebar"] * {{
     color: #0f1923 !important;
-}
-[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {
+}}
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {{
     color: #0f1923 !important;
     font-family: 'Orbitron', sans-serif !important;
     font-weight: 900 !important;
     letter-spacing: 1px;
-}
+}}
 
 /* 미래지향적 헤더 네온 발광 효과 */
-h1, h2, h3, h4, h5, h6, .stSubheader {
+h1, h2, h3, h4, h5, h6, .stSubheader {{
     font-family: 'Orbitron', sans-serif !important;
     font-weight: 800 !important;
     color: #ffffff !important;
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.3) !important;
     letter-spacing: 1px;
-}
+}}
 
 /* 입력 필드 및 선택 박스 스타일 - 화이트 티타늄 질감 + 하늘색 테두리 */
-div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {
+div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {{
     background-color: #ffffff !important;
     color: #0f1923 !important;
     border: 2px solid #00F0FF !important;
     border-radius: 8px !important;
     box-shadow: 0 0 10px rgba(0, 240, 255, 0.15) !important;
     font-weight: 600 !important;
-}
-div[data-baseweb="select"] *, input *, textarea * {
+}}
+div[data-baseweb="select"] *, input *, textarea * {{
     color: #0f1923 !important;
-}
+}}
 
 /* 버튼 - 아이온 에너지 코어 발광 효과 */
-button, .stButton button, .stLinkButton a {
+button, .stButton button, .stLinkButton a {{
     background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%) !important;
     color: #0f1923 !important;
     border: 2px solid #00F0FF !important;
@@ -69,33 +177,33 @@ button, .stButton button, .stLinkButton a {
     text-transform: uppercase;
     box-shadow: 0 0 12px rgba(0, 240, 255, 0.3) !important;
     transition: all 0.3s ease !important;
-}
-button:hover, .stButton button:hover, .stLinkButton a:hover {
+}}
+button:hover, .stButton button:hover, .stLinkButton a:hover {{
     background: #00F0FF !important;
     color: #0f1923 !important;
     box-shadow: 0 0 25px rgba(0, 240, 255, 0.8) !important;
     transform: translateY(-2px);
-}
+}}
 
 /* 아코디언/익스팬더 - 사이버 글래스 모피즘 패널 */
-.streamlit-expanderHeader {
+.streamlit-expanderHeader {{
     background-color: rgba(255, 255, 255, 0.07) !important;
     border: 1px solid rgba(0, 240, 255, 0.3) !important;
     border-radius: 8px !important;
     color: #ffffff !important;
     box-shadow: 0 0 8px rgba(0, 240, 255, 0.1) !important;
-}
-.streamlit-expanderContent {
+}}
+.streamlit-expanderContent {{
     background-color: rgba(10, 18, 28, 0.85) !important;
     border-left: 1px solid rgba(0, 240, 255, 0.3) !important;
     border-right: 1px solid rgba(0, 240, 255, 0.3) !important;
     border-bottom: 1px solid rgba(0, 240, 255, 0.3) !important;
     border-radius: 0 0 8px 8px !important;
     color: #ece8e1 !important;
-}
+}}
 
 /* 요원 프로필 미래지향적 스타일링 */
-.agent-portrait-container {
+.agent-portrait-container {{
     position: relative;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(0, 240, 255, 0.15);
@@ -105,43 +213,43 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {
     justify-content: center;
     align-items: center;
     box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
-}
-.agent-portrait-img {
+}}
+.agent-portrait-img {{
     max-width: 100%;
     height: auto;
     filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.35));
     transition: transform 0.3s ease;
-}
-.agent-portrait-container:hover .agent-portrait-img {
+}}
+.agent-portrait-container:hover .agent-portrait-img {{
     transform: scale(1.04);
     filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.6));
-}
-.corner-brn {
+}}
+.corner-brn {{
     position: absolute;
     width: 12px;
     height: 12px;
     border-color: #00F0FF;
     border-style: solid;
-}
-.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
-.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
-.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
-.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+}}
+.tl {{ top: 10px; left: 10px; border-width: 2px 0 0 2px; }}
+.tr {{ top: 10px; right: 10px; border-width: 2px 2px 0 0; }}
+.bl {{ bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }}
+.br {{ bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }}
 
-.agent-profile {
+.agent-profile {{
     display: flex;
     flex-direction: column;
     gap: 20px;
-}
-.agent-info-card, .abilities-container {
+}}
+.agent-info-card, .abilities-container {{
     background: rgba(10, 19, 29, 0.7);
     border: 1px solid rgba(0, 240, 255, 0.2);
     border-radius: 12px;
     padding: 20px;
     position: relative;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-.cyber-header {
+}}
+.cyber-header {{
     font-family: 'Orbitron', sans-serif;
     font-size: 14px;
     font-weight: 900;
@@ -150,57 +258,57 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {
     border-bottom: 1px solid rgba(0, 240, 255, 0.2);
     padding-bottom: 8px;
     margin-bottom: 12px;
-}
-.agent-role {
+}}
+.agent-role {{
     font-family: 'Rajdhani', sans-serif;
     font-size: 18px;
     font-weight: 700;
     color: #ffffff;
     margin-bottom: 8px;
-}
-.agent-desc {
+}}
+.agent-desc {{
     font-size: 14px;
     line-height: 1.6;
     color: #a4b6c6;
-}
-.ability-card {
+}}
+.ability-card {{
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(0, 240, 255, 0.1);
     border-radius: 6px;
     padding: 12px;
     margin-bottom: 10px;
     transition: all 0.2s ease;
-}
-.ability-card:hover {
+}}
+.ability-card:hover {{
     border-color: rgba(0, 240, 255, 0.4);
     background: rgba(0, 240, 255, 0.03);
     box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
-}
-.ability-header {
+}}
+.ability-header {{
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 6px;
-}
-.ability-icon {
+}}
+.ability-icon {{
     width: 25px;
     height: 25px;
     filter: drop-shadow(0 0 3px rgba(0, 240, 255, 0.5));
-}
-.ability-title {
+}}
+.ability-title {{
     font-family: 'Rajdhani', sans-serif;
     font-size: 16px;
     font-weight: 700;
     color: #ffffff;
-}
-.ability-desc {
+}}
+.ability-desc {{
     font-size: 13px;
     color: #8ba2b5;
     line-height: 1.4;
-}
+}}
 
 /* 무기 및 스킨 미래지향적 스타일링 */
-.weapon-display-panel {
+.weapon-display-panel {{
     position: relative;
     background: rgba(10, 19, 29, 0.7);
     border: 1px solid rgba(0, 240, 255, 0.2);
@@ -209,20 +317,20 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {
     text-align: center;
     margin-bottom: 30px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-.weapon-main-img {
+}}
+.weapon-main-img {{
     max-width: 60%;
     height: auto;
     filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.35));
     margin-bottom: 20px;
-}
-.skin-grid {
+}}
+.skin-grid {{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 20px;
     padding: 10px 0;
-}
-.skin-card {
+}}
+.skin-card {{
     background: rgba(10, 19, 29, 0.5);
     border: 1px solid rgba(0, 240, 255, 0.15);
     border-radius: 10px;
@@ -235,33 +343,33 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {
     justify-content: space-between;
     align-items: center;
     height: 170px;
-}
-.skin-card:hover {
+}}
+.skin-card:hover {{
     border-color: #00F0FF;
     box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
     transform: translateY(-4px);
     background: rgba(15, 28, 43, 0.75);
-}
-.skin-card img {
+}}
+.skin-card img {{
     max-width: 90%;
     max-height: 80px;
     object-fit: contain;
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
     transition: filter 0.3s ease;
-}
-.skin-card:hover img {
+}}
+.skin-card:hover img {{
     filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.6));
-}
-.skin-name {
+}}
+.skin-name {{
     margin-top: 10px;
     font-family: 'Rajdhani', sans-serif;
     font-size: 14px;
     font-weight: 700;
     color: #ffffff;
-}
+}}
 
 /* 맵 디스플레이 스타일링 */
-.map-frame {
+.map-frame {{
     position: relative;
     background: rgba(10, 19, 29, 0.7);
     border: 1px solid rgba(0, 240, 255, 0.2);
@@ -269,24 +377,174 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {
     padding: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     margin-bottom: 20px;
-}
-.map-frame-inner {
+}}
+.map-frame-inner {{
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.05);
-}
+}}
 
 /* 전적 조회 스타일링 */
-.stats-search-panel {
+.stats-search-panel {{
     background: rgba(10, 19, 29, 0.7);
     border: 1px solid rgba(0, 240, 255, 0.25);
     border-radius: 12px;
     padding: 25px;
     margin-bottom: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
+}}
+
+/* 24번 제트 모드 센터 패널 스타일링 */
+.jett-center-panel {{
+    position: relative;
+    background: rgba(10, 19, 29, 0.8);
+    border: 2px solid #00F0FF;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.35);
+    animation: slideDown 0.5s ease-out;
+}}
+.jett-center-img {{
+    max-width: 320px;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.4));
+    transition: all 0.3s ease;
+}}
+@keyframes slideDown {{
+    from {{ opacity: 0; transform: translateY(-20px); }}
+    to {{ opacity: 1; transform: translateY(0); }}
+}}
+
+/* 26번 UNKNOWN 글리치 티저 패널 스타일링 */
+.unknown-glitch-panel {{
+    position: relative;
+    background: #020406;
+    border: 2px solid #ff4655;
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    overflow: hidden;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(255, 70, 85, 0.4);
+    animation: slideDown 0.5s ease-out;
+}}
+.glitch-title {{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 5px;
+    position: relative;
+    text-shadow: 0.05em 0 0 rgba(255, 0, 85, 0.75),
+                -0.025em -0.05em 0 rgba(0, 76, 255, 0.75),
+                0.025em 0.05em 0 rgba(0, 255, 80, 0.75);
+    animation: glitch 1s infinite;
+}}
+.teaser-text {{
+    font-family: 'Rajdhani', sans-serif;
+    color: #ff4655;
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 15px;
+    letter-spacing: 1px;
+}}
+.teaser-date {{
+    font-family: 'Orbitron', sans-serif;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 900;
+    margin-top: 10px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}}
+@keyframes glitch {{
+    0% {{
+        text-shadow: 0.05em 0 0 rgba(255, 0, 85, 0.75), -0.025em -0.05em 0 rgba(0, 76, 255, 0.75), 0.025em 0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+    14% {{
+        text-shadow: 0.05em 0 0 rgba(255, 0, 85, 0.75), -0.025em -0.05em 0 rgba(0, 76, 255, 0.75), 0.025em 0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+    15% {{
+        text-shadow: -0.05em -0.025em 0 rgba(255, 0, 85, 0.75), 0.025em 0.025em 0 rgba(0, 76, 255, 0.75), -0.05em -0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+    49% {{
+        text-shadow: -0.05em -0.025em 0 rgba(255, 0, 85, 0.75), 0.025em 0.025em 0 rgba(0, 76, 255, 0.75), -0.05em -0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+    50% {{
+        text-shadow: 0.025em 0.05em 0 rgba(255, 0, 85, 0.75), 0.05em 0 0 rgba(0, 76, 255, 0.75), 0 -0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+    99% {{
+        text-shadow: 0.025em 0.05em 0 rgba(255, 0, 85, 0.75), 0.05em 0 0 rgba(0, 76, 255, 0.75), 0 -0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+    100% {{
+        text-shadow: -0.025em 0 0 rgba(255, 0, 85, 0.75), -0.025em -0.025em 0 rgba(0, 76, 255, 0.75), -0.025em -0.05em 0 rgba(0, 255, 80, 0.75);
+    }}
+}}
+
+/* 이벤트 동적 오버라이드 스타일 주입 */
+{bg_css}
+{gold_css}
 </style>
 """, unsafe_allow_html=True)
+
+# 21번 이벤트 (⚡ 노란 번개): 화면 전역 번개 플래시 & 천둥 오디오 효과
+if st.session_state.event_lightning:
+    st.components.v1.html("""
+    <script>
+        const parentDoc = window.parent.document;
+        const flashDiv = parentDoc.createElement('div');
+        flashDiv.id = 'lightning-flash-overlay';
+        flashDiv.style.position = 'fixed';
+        flashDiv.style.top = '0';
+        flashDiv.style.left = '0';
+        flashDiv.style.width = '100vw';
+        flashDiv.style.height = '100vh';
+        flashDiv.style.backgroundColor = '#FFE500';
+        flashDiv.style.zIndex = '999999';
+        flashDiv.style.pointerEvents = 'none';
+        flashDiv.style.transition = 'opacity 0.5s ease-out';
+        parentDoc.body.appendChild(flashDiv);
+        
+        // Web Audio API 기반 오디오 번개 사운드
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // 저주파 웅장한 진동음
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.6);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+            
+            // 고주파 파열음
+            let osc2 = audioCtx.createOscillator();
+            let gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(350, audioCtx.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+            gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            osc2.start();
+            osc2.stop(audioCtx.currentTime + 0.3);
+        } catch(e) {}
+
+        setTimeout(() => {
+            flashDiv.style.opacity = '0';
+            setTimeout(() => flashDiv.remove(), 550);
+        }, 100);
+    </script>
+    """, height=0)
+    st.session_state.event_lightning = False # 단발성 실행을 위해 상태 즉시 리셋
 
 # API 로드
 @st.cache_data
@@ -299,7 +557,89 @@ agents = get_data("agents")
 maps = get_data("maps")
 weapons = get_data("weapons")
 
+# 사이드바 이벤트 제어 버튼 배치
+st.sidebar.markdown("---")
+st.sidebar.markdown("<h2 style='font-size:16px; margin-bottom:10px;'>⚡ VCT EVENT SYSTEM</h2>", unsafe_allow_html=True)
+
+# 21번 노란 번개
+if st.sidebar.button("⚡ 노란 번개", use_container_width=True):
+    st.session_state.event_lightning = True
+    st.rerun()
+
+# 22번 루비 테마
+ruby_label = "💎 루비 테마 (ON)" if st.session_state.event_ruby else "💎 루비 테마 (OFF)"
+if st.sidebar.button(ruby_label, use_container_width=True):
+    st.session_state.event_ruby = not st.session_state.event_ruby
+    if st.session_state.event_ruby:
+        st.session_state.event_champions = False
+    st.rerun()
+
+# 23번 챔피언스
+champions_label = "🏆 챔피언스 (ON)" if st.session_state.event_champions else "🏆 챔피언스 (OFF)"
+if st.sidebar.button(champions_label, use_container_width=True):
+    st.session_state.event_champions = not st.session_state.event_champions
+    if st.session_state.event_champions:
+        st.session_state.event_ruby = False
+    st.rerun()
+
+# 24번 제트 모드
+jett_label = "💨 제트 모드 (ON)" if st.session_state.event_jett else "💨 제트 모드 (OFF)"
+if st.sidebar.button(jett_label, use_container_width=True):
+    st.session_state.event_jett = not st.session_state.event_jett
+    st.rerun()
+
+# 25번 골드 변환
+gold_label = "✨ 골드 변환 (ON)" if st.session_state.event_gold else "✨ 골드 변환 (OFF)"
+if st.sidebar.button(gold_label, use_container_width=True):
+    st.session_state.event_gold = not st.session_state.event_gold
+    st.rerun()
+
+# 26번 UNKNOWN
+unknown_label = "❓ UNKNOWN (ON)" if st.session_state.event_unknown else "❓ UNKNOWN (OFF)"
+if st.sidebar.button(unknown_label, use_container_width=True):
+    st.session_state.event_unknown = not st.session_state.event_unknown
+    st.rerun()
+
+st.sidebar.markdown("---")
+
 menu = st.sidebar.radio("메뉴", ["요원 상세 정보", "무기 & 스킨", "🗺️ 맵 정보", "📊 전적 검색", "✈️ ION 비행기 게임"])
+
+# 23번 챔피언스 테마 전용 배너 활성화
+if st.session_state.event_champions:
+    st.markdown("""
+    <div class="champions-banner">
+        🏆 VALORANT CHAMPIONS TOUR // SEOUL 2026 🏆
+    </div>
+    """, unsafe_allow_html=True)
+
+# 24번 제트 모드 전용 고화질 일러스트 화면 활성화
+if st.session_state.event_jett and jett_base64:
+    st.markdown(f"""
+    <div class="jett-center-panel">
+        <div class="corner-brn tl"></div>
+        <div class="corner-brn tr"></div>
+        <div class="corner-brn bl"></div>
+        <div class="corner-brn br"></div>
+        <h2 style="text-align: center; font-family: 'Orbitron', sans-serif; margin-top:0;">💨 VCT CHAMPIONS JETT 💨</h2>
+        <div style="display:flex; justify-content:center; align-items:center; margin: 20px 0;">
+            <img src="data:image/png;base64,{jett_base64}" class="jett-center-img" />
+        </div>
+        <p style="text-align: center; font-size:14px; color: #8ba2b5; font-family: 'Rajdhani', sans-serif; font-weight:600; margin-bottom:0;">
+            제트가 VCT 우승 트로피와 함께 승리의 영광을 드러내고 있습니다! (✨ 골드 효과 동적 호환 가능)
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 26번 UNKNOWN 대규모 예고 글리치 활성화
+if st.session_state.event_unknown:
+    st.markdown("""
+    <div class="unknown-glitch-panel">
+        <div class="glitch-title" data-text="UNKNOWN">UNKNOWN</div>
+        <div class="cyber-header" style="color: #ff4655; border-color: rgba(255, 70, 85, 0.3); font-size:14px; margin-top:10px;">⚠️ CLASSIFIED // 기밀 데이터 ⚠️</div>
+        <p class="teaser-text" style="margin-bottom:5px;">SYSTEM WARNING: 기밀 예고 데이터 유출...</p>
+        <p class="teaser-date" style="margin-bottom:0;">VALORANT MEGA UPDATE // 2026.09</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 1. 요원 상세 정보 (검색 기능)
 if menu == "요원 상세 정보":
