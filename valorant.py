@@ -4,14 +4,19 @@ import urllib.parse
 
 st.set_page_config(layout="wide", page_title="VALORANT - ION Edition")
 
-# 1. 아이온(Ion) 테마 미래지향적 CSS 스타일링 적용
+# 1. 아이온(Ion) 테마 전체적인 미래지향적 사이버네틱 CSS 스타일링 적용
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Outfit:wght@300;400;600;800&display=swap');
 
-/* 전체 다크 스페이스 배경 */
+/* 전체 다크 스페이스 배경 및 그리드 격자 */
 .stApp {
-    background: radial-gradient(circle at center, #101924 0%, #060a0f 100%) !important;
+    background-color: #060a0f !important;
+    background-image: 
+        radial-gradient(circle at center, rgba(16, 25, 36, 0.85) 0%, #060a0f 100%),
+        linear-gradient(rgba(0, 240, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.015) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 35px 35px, 35px 35px !important;
     color: #ECE8E1 !important;
     font-family: 'Outfit', sans-serif !important;
 }
@@ -27,12 +32,14 @@ st.markdown("""
 }
 [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {
     color: #0f1923 !important;
-    font-weight: 800 !important;
+    font-family: 'Orbitron', sans-serif !important;
+    font-weight: 900 !important;
+    letter-spacing: 1px;
 }
 
 /* 미래지향적 헤더 네온 발광 효과 */
 h1, h2, h3, h4, h5, h6, .stSubheader {
-    font-family: 'Outfit', sans-serif !important;
+    font-family: 'Orbitron', sans-serif !important;
     font-weight: 800 !important;
     color: #ffffff !important;
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.3) !important;
@@ -86,6 +93,198 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {
     border-radius: 0 0 8px 8px !important;
     color: #ece8e1 !important;
 }
+
+/* 요원 프로필 미래지향적 스타일링 */
+.agent-portrait-container {
+    position: relative;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
+}
+.agent-portrait-img {
+    max-width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.35));
+    transition: transform 0.3s ease;
+}
+.agent-portrait-container:hover .agent-portrait-img {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.6));
+}
+.corner-brn {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: #00F0FF;
+    border-style: solid;
+}
+.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
+.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
+.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+.agent-profile {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.agent-info-card, .abilities-container {
+    background: rgba(10, 19, 29, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.cyber-header {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    color: #00F0FF;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+.agent-role {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+.agent-desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #a4b6c6;
+}
+.ability-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+.ability-card:hover {
+    border-color: rgba(0, 240, 255, 0.4);
+    background: rgba(0, 240, 255, 0.03);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+.ability-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+.ability-icon {
+    width: 25px;
+    height: 25px;
+    filter: drop-shadow(0 0 3px rgba(0, 240, 255, 0.5));
+}
+.ability-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+}
+.ability-desc {
+    font-size: 13px;
+    color: #8ba2b5;
+    line-height: 1.4;
+}
+
+/* 무기 및 스킨 미래지향적 스타일링 */
+.weapon-display-panel {
+    position: relative;
+    background: rgba(10, 19, 29, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.weapon-main-img {
+    max-width: 60%;
+    height: auto;
+    filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.35));
+    margin-bottom: 20px;
+}
+.skin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+    padding: 10px 0;
+}
+.skin-card {
+    background: rgba(10, 19, 29, 0.5);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    height: 170px;
+}
+.skin-card:hover {
+    border-color: #00F0FF;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+    transform: translateY(-4px);
+    background: rgba(15, 28, 43, 0.75);
+}
+.skin-card img {
+    max-width: 90%;
+    max-height: 80px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+    transition: filter 0.3s ease;
+}
+.skin-card:hover img {
+    filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.6));
+}
+.skin-name {
+    margin-top: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* 맵 디스플레이 스타일링 */
+.map-frame {
+    position: relative;
+    background: rgba(10, 19, 29, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    margin-bottom: 20px;
+}
+.map-frame-inner {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 전적 조회 스타일링 */
+.stats-search-panel {
+    background: rgba(10, 19, 29, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -108,26 +307,98 @@ if menu == "요원 상세 정보":
     query = st.text_input("요원 이름을 입력하세요 (예: 제트, 바이퍼 등)")
     filtered_agents = [a for a in agents if a.get("isPlayableCharacter") and (not query or query.lower() in a["displayName"].lower())]
     
-    for agent in filtered_agents:
-        with st.expander(f"{agent['displayName']}"):
-            col1, col2 = st.columns([1, 4])
-            col1.image(agent['fullPortrait'], width=150)
-            for ab in agent['abilities']:
-                col2.markdown(f"**{ab['displayName']}**: {ab.get('description', '')}")
+    if filtered_agents:
+        sel_agent = st.selectbox("조회할 요원을 선택하세요", [a["displayName"] for a in filtered_agents])
+        agent = next(a for a in filtered_agents if a["displayName"] == sel_agent)
+        
+        role_name = agent['role']['displayName'] if agent['role'] else '없음'
+        
+        # 스킬 HTML 렌더링
+        abilities_html = ""
+        for ab in agent['abilities']:
+            icon_url = ab.get('displayIcon', '')
+            icon_img = f'<img src="{icon_url}" class="ability-icon"/>' if icon_url else ''
+            abilities_html += f"""
+            <div class="ability-card">
+                <div class="ability-header">
+                    {icon_img}
+                    <span class="ability-title">{ab["displayName"]}</span>
+                </div>
+                <div class="ability-desc">{ab.get("description", "설명 정보가 없습니다.")}</div>
+            </div>
+            """
+            
+        agent_html = f"""
+        <div class="agent-profile">
+            <div class="agent-info-card">
+                <div class="cyber-header">AGENT PROFILE // {agent["displayName"].upper()}</div>
+                <div class="agent-role">역할군: {role_name}</div>
+                <div class="agent-desc">{agent["description"]}</div>
+            </div>
+            <div class="abilities-container">
+                <div class="cyber-header">TACTICAL ABILITIES // 전술 스킬</div>
+                {abilities_html}
+            </div>
+        </div>
+        """
+        
+        col1, col2 = st.columns([1.2, 2])
+        with col1:
+            st.markdown(f"""
+            <div class="agent-portrait-container">
+                <img src="{agent['fullPortrait']}" class="agent-portrait-img" />
+                <div class="corner-brn tl"></div>
+                <div class="corner-brn tr"></div>
+                <div class="corner-brn bl"></div>
+                <div class="corner-brn br"></div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown(agent_html, unsafe_allow_html=True)
+    else:
+        st.write("해당하는 요원이 없습니다.")
 
-# 2. 무기 및 스킨 (val-skins.com 연동)
+# 2. 무기 및 스킨 (val-skins.com 연동 및 미래형 카드 그리드)
 elif menu == "무기 & 스킨":
     st.title("🔫 무기 및 스킨")
     st.link_button("🌐 val-skins.com에서 스킨 확인하기", "https://www.val-skins.com/?view=skins&filter=Vandal")
     
     sel_w = st.selectbox("무기 선택", [w["displayName"] for w in weapons])
     weapon = next(w for w in weapons if w["displayName"] == sel_w)
-    for skin in weapon.get("skins", []):
-        if skin["displayIcon"] and "Standard" not in skin["displayName"]:
-            st.image(skin["displayIcon"], width=150)
-            st.write(skin["displayName"])
+    
+    # 상단 대형 스펙트럼 디스플레이
+    st.markdown(f"""
+    <div class="weapon-display-panel">
+        <img src="{weapon["displayIcon"]}" class="weapon-main-img"/>
+        <div class="cyber-header">WEAPON PROFILE // {weapon["displayName"].upper()}</div>
+        <div class="corner-brn tl"></div>
+        <div class="corner-brn tr"></div>
+        <div class="corner-brn bl"></div>
+        <div class="corner-brn br"></div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.write("### 🎨 보유 스킨 목록")
+    
+    skins_list = [s for s in weapon.get("skins", []) if s.get("displayIcon") and "Standard" not in s["displayName"]]
+    if skins_list:
+        skins_html = ""
+        for skin in skins_list:
+            skins_html += f"""
+            <div class="skin-card">
+                <img src="{skin["displayIcon"]}" />
+                <div class="skin-name">{skin["displayName"]}</div>
+            </div>
+            """
+        st.markdown(f"""
+        <div class="skin-grid">
+            {skins_html}
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.write("사용할 수 있는 특별 스킨이 없습니다.")
 
-# 3. 맵 정보
+# 3. 맵 정보 (미래지향적 전술 뷰어)
 elif menu == "🗺️ 맵 정보":
     st.title("🗺️ 발로란트 맵 상세")
     sel_map = st.selectbox("맵 선택", [m["displayName"] for m in maps if m.get("displayIcon")])
@@ -136,18 +407,45 @@ elif menu == "🗺️ 맵 정보":
     col1, col2 = st.columns(2)
     with col1:
         st.write("### 📍 전체 지도")
-        st.image(m_data["displayIcon"], use_container_width=True)
+        st.markdown(f"""
+        <div class="map-frame">
+            <div class="map-frame-inner">
+                <img src="{m_data["displayIcon"]}" style="width:100%; border-radius: 6px;"/>
+            </div>
+            <div class="corner-brn tl"></div>
+            <div class="corner-brn tr"></div>
+            <div class="corner-brn bl"></div>
+            <div class="corner-brn br"></div>
+        </div>
+        """, unsafe_allow_html=True)
     with col2:
         st.write("### 📸 맵 상세 사진")
         if m_data.get("splash"):
-            st.image(m_data["splash"], use_container_width=True)
+            st.markdown(f"""
+            <div class="map-frame">
+                <div class="map-frame-inner">
+                    <img src="{m_data["splash"]}" style="width:100%; border-radius: 6px;"/>
+                </div>
+                <div class="corner-brn tl"></div>
+                <div class="corner-brn tr"></div>
+                <div class="corner-brn bl"></div>
+                <div class="corner-brn br"></div>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             st.write("상세 사진을 불러올 수 없습니다.")
 
 # 4. 전적 확인
 elif menu == "📊 전적 검색":
     st.title("📊 전적 확인")
-    player_name = st.text_input("닉네임#태그를 입력하세요")
+    st.markdown("""
+    <div class="stats-search-panel">
+        <div class="cyber-header">VALORANT NETWORK SEARCH // 전적 데이터베이스 검색</div>
+        <p style="color: #8ba2b5; font-size:14px; margin-bottom: 0;">태그를 포함한 라이엇 ID를 검색하여 전적 정보 사이트로 안전하게 연결합니다.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    player_name = st.text_input("닉네임#태그를 입력하세요 (예: FAKER#KR1)")
     if st.button("전적 조회") and player_name:
         if "#" in player_name:
             name_part, tag_part = player_name.split("#")
@@ -477,7 +775,7 @@ elif menu == "✈️ ION 비행기 게임":
                 });
                 ctx.shadowBlur = 0;
 
-                // 아이온 테마 전전투기 (Sleek White + Glowing Cyan Core)
+                // 아이온 테마 전투기 (Sleek White + Glowing Cyan Core)
                 if (!gameOver) {
                     ctx.save();
                     ctx.translate(player.x, player.y);
