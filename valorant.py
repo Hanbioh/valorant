@@ -92,24 +92,37 @@ elif st.session_state.event_champions:
     }
     """
 
-# 골드 변환 마우스 호버 효과
+# 골드 변환 마우스 호버 효과 (커서가 닿는 모든 요소 황금으로)
 gold_css = ""
 if st.session_state.event_gold:
     gold_css = """
-    .stApp img {
-        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    /* 커서가 닿는 모든 요소를 황금으로 */
+    .stApp *:hover {
+        color: #D4AF37 !important;
+        border-color: #D4AF37 !important;
+        text-shadow: 0 0 8px rgba(212,175,55,0.7) !important;
+        transition: all 0.25s ease !important;
     }
     .stApp img:hover {
-        filter: sepia(1) saturate(5) hue-rotate(10deg) brightness(1.2) drop-shadow(0 0 18px #D4AF37) !important;
-        transform: scale(1.05) !important;
+        filter: sepia(1) saturate(5) hue-rotate(10deg) brightness(1.2) drop-shadow(0 0 20px #D4AF37) !important;
+        transform: scale(1.04) !important;
+        transition: all 0.25s ease !important;
     }
-    .agent-portrait-container:hover, .map-frame:hover, .skin-card:hover, .jett-center-panel:hover {
+    .stApp div:hover, .stApp section:hover, .stApp p:hover, .stApp span:hover {
+        background-color: rgba(212,175,55,0.05) !important;
+    }
+    .stApp button:hover, .stApp [data-testid] button:hover {
+        background: linear-gradient(135deg, #D4AF37, #f0d060) !important;
+        color: #0f1923 !important;
+        box-shadow: 0 0 25px rgba(212,175,55,0.9) !important;
+        transform: translateY(-2px) !important;
+    }
+    .agent-info-card:hover, .abilities-container:hover, .weapon-display-panel:hover,
+    .map-frame:hover, .stats-search-panel:hover, .skin-card:hover, .jett-center-panel:hover {
         border-color: #D4AF37 !important;
-        box-shadow: 0 0 25px rgba(212, 175, 55, 0.5) !important;
+        box-shadow: 0 0 30px rgba(212,175,55,0.5) !important;
     }
-    .agent-portrait-container:hover .corner-brn, .map-frame:hover .corner-brn, .jett-center-panel:hover .corner-brn {
-        border-color: #D4AF37 !important;
-    }
+    .corner-brn { border-color: #D4AF37 !important; }
     """
 
 # 1. 아이온(Ion) 테마 전체적인 미래지향적 사이버네틱 CSS 스타일링 적용
@@ -489,62 +502,96 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {{
 </style>
 """, unsafe_allow_html=True)
 
-# 21번 이벤트 (⚡ 노란 번개): 화면 전역 번개 플래시 & 천둥 오디오 효과
+# 21번 이벤트 (⚡ 노란 번개): 화면 전역 다중 번개 플래시 & 번개 줄기 & 천둥 오디오 효과
 if st.session_state.event_lightning:
     st.components.v1.html("""
     <script>
-        const parentDoc = window.parent.document;
-        const flashDiv = parentDoc.createElement('div');
-        flashDiv.id = 'lightning-flash-overlay';
-        flashDiv.style.position = 'fixed';
-        flashDiv.style.top = '0';
-        flashDiv.style.left = '0';
-        flashDiv.style.width = '100vw';
-        flashDiv.style.height = '100vh';
-        flashDiv.style.backgroundColor = '#FFE500';
-        flashDiv.style.zIndex = '999999';
-        flashDiv.style.pointerEvents = 'none';
-        flashDiv.style.transition = 'opacity 0.5s ease-out';
-        parentDoc.body.appendChild(flashDiv);
-        
-        // Web Audio API 기반 오디오 번개 사운드
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // 저주파 웅장한 진동음
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.6);
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.6);
-            
-            // 고주파 파열음
-            let osc2 = audioCtx.createOscillator();
-            let gain2 = audioCtx.createGain();
-            osc2.connect(gain2);
-            gain2.connect(audioCtx.destination);
-            osc2.type = 'triangle';
-            osc2.frequency.setValueAtTime(350, audioCtx.currentTime);
-            osc2.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
-            gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-            osc2.start();
-            osc2.stop(audioCtx.currentTime + 0.3);
-        } catch(e) {}
+    (function(){
+        var d = window.parent.document;
 
-        setTimeout(() => {
-            flashDiv.style.opacity = '0';
-            setTimeout(() => flashDiv.remove(), 550);
-        }, 100);
+        // ── 번개 줄기 SVG 생성 ──────────────────────
+        function makeBolt() {
+            var svg = d.createElementNS('http://www.w3.org/2000/svg','svg');
+            svg.setAttribute('viewBox','0 0 100 400');
+            svg.style.cssText = 'position:fixed;top:0;left:' + (10+Math.random()*80) + '%;width:' + (40+Math.random()*60) + 'px;height:100vh;z-index:999998;pointer-events:none;';
+            var path = '';
+            var x = 50, y = 0;
+            while(y < 400){
+                var nx = x + (Math.random()-0.5)*40;
+                var ny = y + 15 + Math.random()*20;
+                path += (y===0?'M':'L') + x + ' ' + y + ' ';
+                x = Math.max(5, Math.min(95, nx));
+                y = ny;
+            }
+            var pl = d.createElementNS('http://www.w3.org/2000/svg','path');
+            pl.setAttribute('d', path);
+            pl.setAttribute('stroke','#FFE500');
+            pl.setAttribute('stroke-width','3');
+            pl.setAttribute('fill','none');
+            pl.setAttribute('filter','url(#glow)');
+            var defs = d.createElementNS('http://www.w3.org/2000/svg','defs');
+            defs.innerHTML = '<filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+            svg.appendChild(defs);
+            svg.appendChild(pl);
+            d.body.appendChild(svg);
+            setTimeout(function(){ svg.remove(); }, 400);
+        }
+
+        // ── 노란 플래시 오버레이 ─────────────────────
+        function flash(opacity, delay) {
+            var fl = d.createElement('div');
+            fl.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#FFE500;z-index:999997;pointer-events:none;opacity:' + opacity + ';transition:opacity 0.15s ease-out;';
+            d.body.appendChild(fl);
+            setTimeout(function(){ fl.style.opacity='0'; setTimeout(function(){ fl.remove(); }, 200); }, delay);
+        }
+
+        // ── 다중 번쩍임 시퀀스 ──────────────────────
+        flash(0.9, 80);
+        setTimeout(function(){ makeBolt(); }, 0);
+        setTimeout(function(){ flash(0.6, 60); makeBolt(); }, 150);
+        setTimeout(function(){ flash(0.85, 100); makeBolt(); }, 300);
+        setTimeout(function(){ flash(0.4, 80); }, 500);
+        setTimeout(function(){ makeBolt(); flash(0.7, 120); }, 650);
+
+        // ── 웅장한 천둥 사운드 ──────────────────────
+        try {
+            var ac = new (window.AudioContext || window.webkitAudioContext)();
+            // 초기 번개 찌직 소리
+            var o1=ac.createOscillator(), g1=ac.createGain();
+            o1.connect(g1); g1.connect(ac.destination);
+            o1.type='sawtooth';
+            o1.frequency.setValueAtTime(600, ac.currentTime);
+            o1.frequency.exponentialRampToValueAtTime(40, ac.currentTime+0.08);
+            g1.gain.setValueAtTime(0.5, ac.currentTime);
+            g1.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.08);
+            o1.start(); o1.stop(ac.currentTime+0.08);
+            // 깊은 천둥 굉음
+            var o2=ac.createOscillator(), g2=ac.createGain();
+            o2.connect(g2); g2.connect(ac.destination);
+            o2.type='sawtooth';
+            o2.frequency.setValueAtTime(90, ac.currentTime+0.05);
+            o2.frequency.exponentialRampToValueAtTime(8, ac.currentTime+0.9);
+            g2.gain.setValueAtTime(0.0, ac.currentTime);
+            g2.gain.setValueAtTime(0.45, ac.currentTime+0.05);
+            g2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.9);
+            o2.start(); o2.stop(ac.currentTime+0.9);
+            // 고주파 전기 파열
+            var o3=ac.createOscillator(), g3=ac.createGain();
+            o3.connect(g3); g3.connect(ac.destination);
+            o3.type='square';
+            o3.frequency.setValueAtTime(1200, ac.currentTime);
+            o3.frequency.exponentialRampToValueAtTime(200, ac.currentTime+0.05);
+            g3.gain.setValueAtTime(0.15, ac.currentTime);
+            g3.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.05);
+            o3.start(); o3.stop(ac.currentTime+0.05);
+        } catch(e) {}
+    })();
     </script>
     """, height=0)
-    st.session_state.event_lightning = False # 단발성 실행을 위해 상태 즉시 리셋
+    st.session_state.event_lightning = False  # 단발성 실행을 위해 상태 즉시 리셋
+
+
+
 
 # API 로드
 @st.cache_data
@@ -559,43 +606,47 @@ weapons = get_data("weapons")
 
 # 사이드바 이벤트 제어 버튼 배치
 st.sidebar.markdown("---")
-st.sidebar.markdown("<h2 style='font-size:16px; margin-bottom:10px;'>⚡ VCT EVENT SYSTEM</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("""
+<div style='background:linear-gradient(135deg,#0f1923,#1a2a3a);border:1px solid #00F0FF;border-radius:10px;padding:12px 10px 6px 10px;margin-bottom:8px;'>
+    <div style='font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;color:#00F0FF;letter-spacing:2px;text-align:center;margin-bottom:10px;text-shadow:0 0 8px rgba(0,240,255,0.6);'>⚡ VCT EVENT SYSTEM</div>
+</div>
+""", unsafe_allow_html=True)
 
-# 21번 노란 번개
-if st.sidebar.button("⚡ 노란 번개", use_container_width=True):
+# 21번 ⚡ 노란 번개
+if st.sidebar.button("21 ⚡ 노란 번개", use_container_width=True):
     st.session_state.event_lightning = True
     st.rerun()
 
-# 22번 루비 테마
-ruby_label = "💎 루비 테마 (ON)" if st.session_state.event_ruby else "💎 루비 테마 (OFF)"
+# 22번 💎 루비 테마
+ruby_label = "22 💎 루비 테마 [ON]" if st.session_state.event_ruby else "22 💎 루비 테마 [OFF]"
 if st.sidebar.button(ruby_label, use_container_width=True):
     st.session_state.event_ruby = not st.session_state.event_ruby
     if st.session_state.event_ruby:
         st.session_state.event_champions = False
     st.rerun()
 
-# 23번 챔피언스
-champions_label = "🏆 챔피언스 (ON)" if st.session_state.event_champions else "🏆 챔피언스 (OFF)"
+# 23번 🏆 챔피언스
+champions_label = "23 🏆 챔피언스 [ON]" if st.session_state.event_champions else "23 🏆 챔피언스 [OFF]"
 if st.sidebar.button(champions_label, use_container_width=True):
     st.session_state.event_champions = not st.session_state.event_champions
     if st.session_state.event_champions:
         st.session_state.event_ruby = False
     st.rerun()
 
-# 24번 제트 모드
-jett_label = "💨 제트 모드 (ON)" if st.session_state.event_jett else "💨 제트 모드 (OFF)"
+# 24번 💨 제트 모드
+jett_label = "24 💨 제트 모드 [ON]" if st.session_state.event_jett else "24 💨 제트 모드 [OFF]"
 if st.sidebar.button(jett_label, use_container_width=True):
     st.session_state.event_jett = not st.session_state.event_jett
     st.rerun()
 
-# 25번 골드 변환
-gold_label = "✨ 골드 변환 (ON)" if st.session_state.event_gold else "✨ 골드 변환 (OFF)"
+# 25번 ✨ 골드 변환
+gold_label = "25 ✨ 골드 변환 [ON]" if st.session_state.event_gold else "25 ✨ 골드 변환 [OFF]"
 if st.sidebar.button(gold_label, use_container_width=True):
     st.session_state.event_gold = not st.session_state.event_gold
     st.rerun()
 
-# 26번 UNKNOWN
-unknown_label = "❓ UNKNOWN (ON)" if st.session_state.event_unknown else "❓ UNKNOWN (OFF)"
+# 26번 ❓ UNKNOWN
+unknown_label = "26 ❓ UNKNOWN [ON]" if st.session_state.event_unknown else "26 ❓ UNKNOWN [OFF]"
 if st.sidebar.button(unknown_label, use_container_width=True):
     st.session_state.event_unknown = not st.session_state.event_unknown
     st.rerun()
