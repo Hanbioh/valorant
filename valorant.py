@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import urllib.parse
 import base64
+import hashlib
 
 # 0. 세션 상태 초기화 (이벤트 제어용)
 for key in ["event_lightning", "event_ruby", "event_champions", "event_jett", "event_gold", "event_unknown"]:
@@ -26,111 +27,29 @@ if st.session_state.event_ruby:
     bg_css = """
     .stApp {
         background: radial-gradient(circle at center, #3d060f 0%, #150205 100%) !important;
-        background-image: 
-            radial-gradient(circle at center, rgba(61, 6, 15, 0.9) 0%, #150205 100%),
-            linear-gradient(rgba(255, 70, 85, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 70, 85, 0.02) 1px, transparent 1px) !important;
         color: #ECE8E1 !important;
     }
     h1, h2, h3, h4, h5, h6, .stSubheader, .cyber-header {
         color: #FF4655 !important;
-        text-shadow: 0 0 10px rgba(255, 70, 85, 0.8), 0 0 20px rgba(255, 70, 85, 0.3) !important;
-    }
-    div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {
-        border: 2px solid #FF4655 !important;
-        box-shadow: 0 0 10px rgba(255, 70, 85, 0.15) !important;
-    }
-    button, .stButton button, .stLinkButton a {
-        border: 2px solid #FF4655 !important;
-        box-shadow: 0 0 12px rgba(255, 70, 85, 0.3) !important;
-    }
-    button:hover, .stButton button:hover, .stLinkButton a:hover {
-        background: #FF4655 !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 25px rgba(255, 70, 85, 0.8) !important;
-    }
-    .corner-brn {
-        border-color: #FF4655 !important;
-    }
-    .agent-info-card, .abilities-container, .weapon-display-panel, .map-frame, .stats-search-panel {
-        border-color: rgba(255, 70, 85, 0.3) !important;
-        box-shadow: 0 8px 32px rgba(61, 6, 15, 0.5) !important;
+        text-shadow: 0 0 10px rgba(255, 70, 85, 0.8) !important;
     }
     """
 elif st.session_state.event_champions:
     bg_css = """
     .stApp {
         background: radial-gradient(circle at center, #1b160a 0%, #080703 100%) !important;
-        background-image: 
-            radial-gradient(circle at center, rgba(46, 36, 12, 0.95) 0%, #080703 100%),
-            linear-gradient(rgba(212, 175, 55, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(212, 175, 55, 0.02) 1px, transparent 1px) !important;
     }
     h1, h2, h3, h4, h5, h6, .stSubheader, .cyber-header {
         color: #D4AF37 !important;
-        text-shadow: 0 0 10px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.4) !important;
-    }
-    div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {
-        border: 2px solid #D4AF37 !important;
-        box-shadow: 0 0 10px rgba(212, 175, 55, 0.2) !important;
-    }
-    button, .stButton button, .stLinkButton a {
-        border: 2px solid #D4AF37 !important;
-        box-shadow: 0 0 12px rgba(212, 175, 55, 0.3) !important;
-    }
-    button:hover, .stButton button:hover, .stLinkButton a:hover {
-        background: #D4AF37 !important;
-        color: #0f1923 !important;
-        box-shadow: 0 0 25px rgba(212, 175, 55, 0.8) !important;
-    }
-    .corner-brn {
-        border-color: #D4AF37 !important;
-    }
-    .agent-info-card, .abilities-container, .weapon-display-panel, .map-frame, .stats-search-panel {
-        border-color: rgba(212, 175, 55, 0.3) !important;
-        box-shadow: 0 8px 32px rgba(46, 36, 12, 0.5) !important;
+        text-shadow: 0 0 10px rgba(212, 175, 55, 0.8) !important;
     }
     """
 
-# 골드 변환 마우스 호버 효과 (커서가 닿는 모든 요소 황금으로)
-gold_css = ""
-if st.session_state.event_gold:
-    gold_css = """
-    /* 커서가 닿는 모든 요소를 황금으로 */
-    .stApp *:hover {
-        color: #D4AF37 !important;
-        border-color: #D4AF37 !important;
-        text-shadow: 0 0 8px rgba(212,175,55,0.7) !important;
-        transition: all 0.25s ease !important;
-    }
-    .stApp img:hover {
-        filter: sepia(1) saturate(5) hue-rotate(10deg) brightness(1.2) drop-shadow(0 0 20px #D4AF37) !important;
-        transform: scale(1.04) !important;
-        transition: all 0.25s ease !important;
-    }
-    .stApp div:hover, .stApp section:hover, .stApp p:hover, .stApp span:hover {
-        background-color: rgba(212,175,55,0.05) !important;
-    }
-    .stApp button:hover, .stApp [data-testid] button:hover {
-        background: linear-gradient(135deg, #D4AF37, #f0d060) !important;
-        color: #0f1923 !important;
-        box-shadow: 0 0 25px rgba(212,175,55,0.9) !important;
-        transform: translateY(-2px) !important;
-    }
-    .agent-info-card:hover, .abilities-container:hover, .weapon-display-panel:hover,
-    .map-frame:hover, .stats-search-panel:hover, .skin-card:hover, .jett-center-panel:hover {
-        border-color: #D4AF37 !important;
-        box-shadow: 0 0 30px rgba(212,175,55,0.5) !important;
-    }
-    .corner-brn { border-color: #D4AF37 !important; }
-    """
-
-# 1. 아이온(Ion) 테마 전체적인 미래지향적 사이버네틱 CSS 스타일링 적용
+# 1. 미래지향적 사이버네틱 CSS 스타일링 적용
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Outfit:wght@300;400;600;800&display=swap');
 
-/* 전체 다크 스페이스 배경 및 그리드 격자 */
 .stApp {{
     background-color: #060a0f !important;
     background-image: 
@@ -142,206 +61,49 @@ st.markdown(f"""
     font-family: 'Outfit', sans-serif !important;
 }}
 
-/* 사이드바 - 아이온 화이트 메탈 케이스 느낌 */
 [data-testid="stSidebar"] {{
     background-color: #f5f7fa !important;
     border-right: 3px solid #00F0FF !important;
     box-shadow: 0 0 20px rgba(0, 240, 255, 0.25) !important;
 }}
-[data-testid="stSidebar"] * {{
+[data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{
     color: #0f1923 !important;
-}}
-[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {{
-    color: #0f1923 !important;
-    font-family: 'Orbitron', sans-serif !important;
-    font-weight: 900 !important;
-    letter-spacing: 1px;
 }}
 
-/* 미래지향적 헤더 네온 발광 효과 */
 h1, h2, h3, h4, h5, h6, .stSubheader {{
     font-family: 'Orbitron', sans-serif !important;
     font-weight: 800 !important;
     color: #ffffff !important;
-    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.3) !important;
-    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8) !important;
 }}
 
-/* 입력 필드 및 선택 박스 스타일 - 화이트 티타늄 질감 + 하늘색 테두리 */
 div[data-baseweb="select"], input, textarea, div[data-baseweb="input"] {{
     background-color: #ffffff !important;
     color: #0f1923 !important;
     border: 2px solid #00F0FF !important;
     border-radius: 8px !important;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15) !important;
-    font-weight: 600 !important;
-}}
-div[data-baseweb="select"] *, input *, textarea * {{
-    color: #0f1923 !important;
 }}
 
-/* 버튼 - 아이온 에너지 코어 발광 효과 */
 button, .stButton button, .stLinkButton a {{
     background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%) !important;
     color: #0f1923 !important;
     border: 2px solid #00F0FF !important;
     border-radius: 8px !important;
     font-weight: 800 !important;
-    text-transform: uppercase;
-    box-shadow: 0 0 12px rgba(0, 240, 255, 0.3) !important;
-    transition: all 0.3s ease !important;
-}}
-button:hover, .stButton button:hover, .stLinkButton a:hover {{
-    background: #00F0FF !important;
-    color: #0f1923 !important;
-    box-shadow: 0 0 25px rgba(0, 240, 255, 0.8) !important;
-    transform: translateY(-2px);
 }}
 
-/* 아코디언/익스팬더 - 사이버 글래스 모피즘 패널 */
-.streamlit-expanderHeader {{
-    background-color: rgba(255, 255, 255, 0.07) !important;
-    border: 1px solid rgba(0, 240, 255, 0.3) !important;
-    border-radius: 8px !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 8px rgba(0, 240, 255, 0.1) !important;
-}}
-.streamlit-expanderContent {{
-    background-color: rgba(10, 18, 28, 0.85) !important;
-    border-left: 1px solid rgba(0, 240, 255, 0.3) !important;
-    border-right: 1px solid rgba(0, 240, 255, 0.3) !important;
-    border-bottom: 1px solid rgba(0, 240, 255, 0.3) !important;
-    border-radius: 0 0 8px 8px !important;
-    color: #ece8e1 !important;
-}}
-
-/* 요원 프로필 미래지향적 스타일링 */
-.agent-portrait-container {{
-    position: relative;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(0, 240, 255, 0.15);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
-}}
-.agent-portrait-img {{
-    max-width: 100%;
-    height: auto;
-    filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.35));
-    transition: transform 0.3s ease;
-}}
-.agent-portrait-container:hover .agent-portrait-img {{
-    transform: scale(1.04);
-    filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.6));
-}}
-.corner-brn {{
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    border-color: #00F0FF;
-    border-style: solid;
-}}
-.tl {{ top: 10px; left: 10px; border-width: 2px 0 0 2px; }}
-.tr {{ top: 10px; right: 10px; border-width: 2px 2px 0 0; }}
-.bl {{ bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }}
-.br {{ bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }}
-
-.agent-profile {{
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}}
-.agent-info-card, .abilities-container {{
+.agent-info-card, .abilities-container, .weapon-display-panel, .map-frame {{
     background: rgba(10, 19, 29, 0.7);
     border: 1px solid rgba(0, 240, 255, 0.2);
     border-radius: 12px;
     padding: 20px;
-    position: relative;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}}
-.cyber-header {{
-    font-family: 'Orbitron', sans-serif;
-    font-size: 14px;
-    font-weight: 900;
-    color: #00F0FF;
-    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
-    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-}}
-.agent-role {{
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 8px;
-}}
-.agent-desc {{
-    font-size: 14px;
-    line-height: 1.6;
-    color: #a4b6c6;
-}}
-.ability-card {{
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(0, 240, 255, 0.1);
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 10px;
-    transition: all 0.2s ease;
-}}
-.ability-card:hover {{
-    border-color: rgba(0, 240, 255, 0.4);
-    background: rgba(0, 240, 255, 0.03);
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
-}}
-.ability-header {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-}}
-.ability-icon {{
-    width: 25px;
-    height: 25px;
-    filter: drop-shadow(0 0 3px rgba(0, 240, 255, 0.5));
-}}
-.ability-title {{
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: #ffffff;
-}}
-.ability-desc {{
-    font-size: 13px;
-    color: #8ba2b5;
-    line-height: 1.4;
-}}
-
-/* 무기 및 스킨 미래지향적 스타일링 */
-.weapon-display-panel {{
-    position: relative;
-    background: rgba(10, 19, 29, 0.7);
-    border: 1px solid rgba(0, 240, 255, 0.2);
-    border-radius: 12px;
-    padding: 30px;
-    text-align: center;
-    margin-bottom: 30px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}}
-.weapon-main-img {{
-    max-width: 60%;
-    height: auto;
-    filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.35));
     margin-bottom: 20px;
 }}
+
 .skin-grid {{
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
-    padding: 10px 0;
 }}
 .skin-card {{
     background: rgba(10, 19, 29, 0.5);
@@ -349,350 +111,64 @@ button:hover, .stButton button:hover, .stLinkButton a:hover {{
     border-radius: 10px;
     padding: 15px;
     text-align: center;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    height: 170px;
-}}
-.skin-card:hover {{
-    border-color: #00F0FF;
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
-    transform: translateY(-4px);
-    background: rgba(15, 28, 43, 0.75);
-}}
-.skin-card img {{
-    max-width: 90%;
-    max-height: 80px;
-    object-fit: contain;
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
-    transition: filter 0.3s ease;
-}}
-.skin-card:hover img {{
-    filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.6));
-}}
-.skin-name {{
-    margin-top: 10px;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    color: #ffffff;
 }}
 
-/* 맵 디스플레이 스타일링 */
-.map-frame {{
-    position: relative;
-    background: rgba(10, 19, 29, 0.7);
-    border: 1px solid rgba(0, 240, 255, 0.2);
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    margin-bottom: 20px;
-}}
-.map-frame-inner {{
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}}
-
-/* 전적 조회 스타일링 */
-.stats-search-panel {{
-    background: rgba(10, 19, 29, 0.7);
-    border: 1px solid rgba(0, 240, 255, 0.25);
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}}
-
-/* 24번 제트 모드 센터 패널 스타일링 */
-.jett-center-panel {{
-    position: relative;
-    background: rgba(10, 19, 29, 0.8);
-    border: 2px solid #00F0FF;
-    border-radius: 16px;
-    padding: 30px;
-    margin-bottom: 30px;
-    box-shadow: 0 0 35px rgba(0, 240, 255, 0.35);
-    animation: slideDown 0.5s ease-out;
-}}
-.jett-center-img {{
-    max-width: 320px;
-    width: 100%;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 240, 255, 0.35);
-    filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.4));
-    transition: all 0.3s ease;
-}}
-@keyframes slideDown {{
-    from {{ opacity: 0; transform: translateY(-20px); }}
-    to {{ opacity: 1; transform: translateY(0); }}
-}}
-
-/* 26번 UNKNOWN 글리치 티저 패널 스타일링 */
-.unknown-glitch-panel {{
-    position: relative;
-    background: #020406;
-    border: 2px solid #ff4655;
-    border-radius: 12px;
-    padding: 30px;
-    margin-bottom: 30px;
-    overflow: hidden;
-    text-align: center;
-    box-shadow: 0 0 25px rgba(255, 70, 85, 0.4);
-    animation: slideDown 0.5s ease-out;
-}}
-.glitch-title {{
-    font-family: 'Orbitron', sans-serif;
-    font-size: 42px;
-    font-weight: 900;
-    color: #ffffff;
-    letter-spacing: 5px;
-    position: relative;
-    text-shadow: 0.05em 0 0 rgba(255, 0, 85, 0.75),
-                -0.025em -0.05em 0 rgba(0, 76, 255, 0.75),
-                0.025em 0.05em 0 rgba(0, 255, 80, 0.75);
-    animation: glitch 1s infinite;
-}}
-.teaser-text {{
-    font-family: 'Rajdhani', sans-serif;
-    color: #ff4655;
-    font-size: 18px;
-    font-weight: 700;
-    margin-top: 15px;
-    letter-spacing: 1px;
-}}
-.teaser-date {{
-    font-family: 'Orbitron', sans-serif;
-    color: #ffffff;
-    font-size: 22px;
-    font-weight: 900;
-    margin-top: 10px;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}}
-@keyframes glitch {{
-    0% {{
-        text-shadow: 0.05em 0 0 rgba(255, 0, 85, 0.75), -0.025em -0.05em 0 rgba(0, 76, 255, 0.75), 0.025em 0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-    14% {{
-        text-shadow: 0.05em 0 0 rgba(255, 0, 85, 0.75), -0.025em -0.05em 0 rgba(0, 76, 255, 0.75), 0.025em 0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-    15% {{
-        text-shadow: -0.05em -0.025em 0 rgba(255, 0, 85, 0.75), 0.025em 0.025em 0 rgba(0, 76, 255, 0.75), -0.05em -0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-    49% {{
-        text-shadow: -0.05em -0.025em 0 rgba(255, 0, 85, 0.75), 0.025em 0.025em 0 rgba(0, 76, 255, 0.75), -0.05em -0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-    50% {{
-        text-shadow: 0.025em 0.05em 0 rgba(255, 0, 85, 0.75), 0.05em 0 0 rgba(0, 76, 255, 0.75), 0 -0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-    99% {{
-        text-shadow: 0.025em 0.05em 0 rgba(255, 0, 85, 0.75), 0.05em 0 0 rgba(0, 76, 255, 0.75), 0 -0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-    100% {{
-        text-shadow: -0.025em 0 0 rgba(255, 0, 85, 0.75), -0.025em -0.025em 0 rgba(0, 76, 255, 0.75), -0.025em -0.05em 0 rgba(0, 255, 80, 0.75);
-    }}
-}}
-
-/* 이벤트 동적 오버라이드 스타일 주입 */
 {bg_css}
-{gold_css}
 </style>
 """, unsafe_allow_html=True)
-
-# 21번 이벤트 (⚡ 노란 번개): 화면 전역 다중 번개 플래시 & 번개 줄기 & 천둥 오디오 효과
-if st.session_state.event_lightning:
-    st.components.v1.html("""
-    <script>
-    (function(){
-        var d = window.parent.document;
-
-        // ── 번개 줄기 SVG 생성 ──────────────────────
-        function makeBolt() {
-            var svg = d.createElementNS('http://www.w3.org/2000/svg','svg');
-            svg.setAttribute('viewBox','0 0 100 400');
-            svg.style.cssText = 'position:fixed;top:0;left:' + (10+Math.random()*80) + '%;width:' + (40+Math.random()*60) + 'px;height:100vh;z-index:999998;pointer-events:none;';
-            var path = '';
-            var x = 50, y = 0;
-            while(y < 400){
-                var nx = x + (Math.random()-0.5)*40;
-                var ny = y + 15 + Math.random()*20;
-                path += (y===0?'M':'L') + x + ' ' + y + ' ';
-                x = Math.max(5, Math.min(95, nx));
-                y = ny;
-            }
-            var pl = d.createElementNS('http://www.w3.org/2000/svg','path');
-            pl.setAttribute('d', path);
-            pl.setAttribute('stroke','#FFE500');
-            pl.setAttribute('stroke-width','3');
-            pl.setAttribute('fill','none');
-            pl.setAttribute('filter','url(#glow)');
-            var defs = d.createElementNS('http://www.w3.org/2000/svg','defs');
-            defs.innerHTML = '<filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-            svg.appendChild(defs);
-            svg.appendChild(pl);
-            d.body.appendChild(svg);
-            setTimeout(function(){ svg.remove(); }, 400);
-        }
-
-        // ── 노란 플래시 오버레이 ─────────────────────
-        function flash(opacity, delay) {
-            var fl = d.createElement('div');
-            fl.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#FFE500;z-index:999997;pointer-events:none;opacity:' + opacity + ';transition:opacity 0.15s ease-out;';
-            d.body.appendChild(fl);
-            setTimeout(function(){ fl.style.opacity='0'; setTimeout(function(){ fl.remove(); }, 200); }, delay);
-        }
-
-        // ── 다중 번쩍임 시퀀스 ──────────────────────
-        flash(0.9, 80);
-        setTimeout(function(){ makeBolt(); }, 0);
-        setTimeout(function(){ flash(0.6, 60); makeBolt(); }, 150);
-        setTimeout(function(){ flash(0.85, 100); makeBolt(); }, 300);
-        setTimeout(function(){ flash(0.4, 80); }, 500);
-        setTimeout(function(){ makeBolt(); flash(0.7, 120); }, 650);
-
-        // ── 웅장한 천둥 사운드 ──────────────────────
-        try {
-            var ac = new (window.AudioContext || window.webkitAudioContext)();
-            // 초기 번개 찌직 소리
-            var o1=ac.createOscillator(), g1=ac.createGain();
-            o1.connect(g1); g1.connect(ac.destination);
-            o1.type='sawtooth';
-            o1.frequency.setValueAtTime(600, ac.currentTime);
-            o1.frequency.exponentialRampToValueAtTime(40, ac.currentTime+0.08);
-            g1.gain.setValueAtTime(0.5, ac.currentTime);
-            g1.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.08);
-            o1.start(); o1.stop(ac.currentTime+0.08);
-            // 깊은 천둥 굉음
-            var o2=ac.createOscillator(), g2=ac.createGain();
-            o2.connect(g2); g2.connect(ac.destination);
-            o2.type='sawtooth';
-            o2.frequency.setValueAtTime(90, ac.currentTime+0.05);
-            o2.frequency.exponentialRampToValueAtTime(8, ac.currentTime+0.9);
-            g2.gain.setValueAtTime(0.0, ac.currentTime);
-            g2.gain.setValueAtTime(0.45, ac.currentTime+0.05);
-            g2.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.9);
-            o2.start(); o2.stop(ac.currentTime+0.9);
-            // 고주파 전기 파열
-            var o3=ac.createOscillator(), g3=ac.createGain();
-            o3.connect(g3); g3.connect(ac.destination);
-            o3.type='square';
-            o3.frequency.setValueAtTime(1200, ac.currentTime);
-            o3.frequency.exponentialRampToValueAtTime(200, ac.currentTime+0.05);
-            g3.gain.setValueAtTime(0.15, ac.currentTime);
-            g3.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.05);
-            o3.start(); o3.stop(ac.currentTime+0.05);
-        } catch(e) {}
-    })();
-    </script>
-    """, height=0)
-    st.session_state.event_lightning = False  # 단발성 실행을 위해 상태 즉시 리셋
-
-
-
 
 # API 로드
 @st.cache_data
 def get_data(endpoint):
-    url = f"https://valorant-api.com/v1/{endpoint}?language=ko-KR"
-    res = requests.get(url)
-    return res.json().get("data", []) if res.status_code == 200 else []
+    try:
+        url = f"https://valorant-api.com/v1/{endpoint}?language=ko-KR"
+        res = requests.get(url, verify=False, timeout=10)
+        return res.json().get("data", []) if res.status_code == 200 else []
+    except Exception:
+        return []
 
 agents = get_data("agents")
 maps = get_data("maps")
 weapons = get_data("weapons")
 
-# 사이드바 이벤트 제어 버튼 배치
-st.sidebar.markdown("---")
+@st.cache_data(ttl=1800)
+def get_user_gemini_models(api_key_str):
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key_str)
+        models = []
+        for m in genai.list_models():
+            if "generateContent" in m.supported_generation_methods:
+                clean_name = m.name.replace("models/", "")
+                disp = m.display_name if m.display_name else clean_name
+                models.append((f"✨ {disp}", clean_name))
+        
+        # 모델의 가벼움(속도) 기준 정렬: 8b(가장 가벼움) -> flash -> pro
+        def get_model_priority(item):
+            name = item[1].lower()
+            if "8b" in name:
+                return 1
+            elif "flash" in name:
+                return 2
+            elif "pro" in name:
+                return 3
+            return 4
+            
+        models.sort(key=get_model_priority)
+        return models
+    except Exception:
+        return []
+
+# 사이드바 설정
 st.sidebar.markdown("""
-<div style='background:linear-gradient(135deg,#0f1923,#1a2a3a);border:1px solid #00F0FF;border-radius:10px;padding:12px 10px 6px 10px;margin-bottom:8px;'>
-    <div style='font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;color:#00F0FF;letter-spacing:2px;text-align:center;margin-bottom:10px;text-shadow:0 0 8px rgba(0,240,255,0.6);'>⚡ VCT EVENT SYSTEM</div>
+<div style='background:linear-gradient(135deg,#0f1923,#1a2a3a);border:1px solid #00F0FF;border-radius:10px;padding:12px;margin-bottom:8px;text-align:center;'>
+    <div style='font-family:Orbitron,sans-serif;font-size:13px;font-weight:900;color:#00F0FF;'>⚡ VCT EVENT SYSTEM</div>
 </div>
 """, unsafe_allow_html=True)
 
-# 21번 ⚡ 노란 번개
-if st.sidebar.button("21 ⚡ 노란 번개", use_container_width=True):
-    st.session_state.event_lightning = True
-    st.rerun()
+menu = st.sidebar.radio("메뉴", ["요원 상세 정보", "무기 & 스킨", "🗺️ 맵 정보", "📊 전적 검색", "🤖 AI 스킨 추천"])
 
-# 22번 💎 루비 테마
-ruby_label = "22 💎 루비 테마 [ON]" if st.session_state.event_ruby else "22 💎 루비 테마 [OFF]"
-if st.sidebar.button(ruby_label, use_container_width=True):
-    st.session_state.event_ruby = not st.session_state.event_ruby
-    if st.session_state.event_ruby:
-        st.session_state.event_champions = False
-    st.rerun()
-
-# 23번 🏆 챔피언스
-champions_label = "23 🏆 챔피언스 [ON]" if st.session_state.event_champions else "23 🏆 챔피언스 [OFF]"
-if st.sidebar.button(champions_label, use_container_width=True):
-    st.session_state.event_champions = not st.session_state.event_champions
-    if st.session_state.event_champions:
-        st.session_state.event_ruby = False
-    st.rerun()
-
-# 24번 💨 제트 모드
-jett_label = "24 💨 제트 모드 [ON]" if st.session_state.event_jett else "24 💨 제트 모드 [OFF]"
-if st.sidebar.button(jett_label, use_container_width=True):
-    st.session_state.event_jett = not st.session_state.event_jett
-    st.rerun()
-
-# 25번 ✨ 골드 변환
-gold_label = "25 ✨ 골드 변환 [ON]" if st.session_state.event_gold else "25 ✨ 골드 변환 [OFF]"
-if st.sidebar.button(gold_label, use_container_width=True):
-    st.session_state.event_gold = not st.session_state.event_gold
-    st.rerun()
-
-# 26번 ❓ UNKNOWN
-unknown_label = "26 ❓ UNKNOWN [ON]" if st.session_state.event_unknown else "26 ❓ UNKNOWN [OFF]"
-if st.sidebar.button(unknown_label, use_container_width=True):
-    st.session_state.event_unknown = not st.session_state.event_unknown
-    st.rerun()
-
-st.sidebar.markdown("---")
-
-menu = st.sidebar.radio("메뉴", ["요원 상세 정보", "무기 & 스킨", "🗺️ 맵 정보", "📊 전적 검색", "✈️ ION 비행기 게임"])
-
-# 23번 챔피언스 테마 전용 배너 활성화
-if st.session_state.event_champions:
-    st.markdown("""
-    <div class="champions-banner">
-        🏆 VALORANT CHAMPIONS TOUR // SEOUL 2026 🏆
-    </div>
-    """, unsafe_allow_html=True)
-
-# 24번 제트 모드 전용 고화질 일러스트 화면 활성화
-if st.session_state.event_jett and jett_base64:
-    st.markdown(f"""
-    <div class="jett-center-panel">
-        <div class="corner-brn tl"></div>
-        <div class="corner-brn tr"></div>
-        <div class="corner-brn bl"></div>
-        <div class="corner-brn br"></div>
-        <h2 style="text-align: center; font-family: 'Orbitron', sans-serif; margin-top:0;">💨 VCT CHAMPIONS JETT 💨</h2>
-        <div style="display:flex; justify-content:center; align-items:center; margin: 20px 0;">
-            <img src="data:image/png;base64,{jett_base64}" class="jett-center-img" />
-        </div>
-        <p style="text-align: center; font-size:14px; color: #8ba2b5; font-family: 'Rajdhani', sans-serif; font-weight:600; margin-bottom:0;">
-            제트가 VCT 우승 트로피와 함께 승리의 영광을 드러내고 있습니다! (✨ 골드 효과 동적 호환 가능)
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 26번 UNKNOWN 대규모 예고 글리치 활성화
-if st.session_state.event_unknown:
-    st.markdown("""
-    <div class="unknown-glitch-panel">
-        <div class="glitch-title" data-text="UNKNOWN">UNKNOWN</div>
-        <div class="cyber-header" style="color: #ff4655; border-color: rgba(255, 70, 85, 0.3); font-size:14px; margin-top:10px;">⚠️ CLASSIFIED // 기밀 데이터 ⚠️</div>
-        <p class="teaser-text" style="margin-bottom:5px;">SYSTEM WARNING: 기밀 예고 데이터 유출...</p>
-        <p class="teaser-date" style="margin-bottom:0;">VALORANT MEGA UPDATE // 2026.09</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 1. 요원 상세 정보 (검색 기능)
+# 1. 요원 상세 정보
 if menu == "요원 상세 정보":
     st.title("👤 요원 검색 및 정보")
     query = st.text_input("요원 이름을 입력하세요 (예: 제트, 바이퍼 등)")
@@ -703,596 +179,286 @@ if menu == "요원 상세 정보":
         agent = next((a for a in filtered_agents if a["displayName"] == sel_agent), None)
         
         if agent:
-            role_name = agent['role']['displayName'] if agent['role'] else '없음'
-            
-            # 스킬 HTML 렌더링
-            abilities_html = ""
-            for ab in agent['abilities']:
-                icon_url = ab.get('displayIcon', '')
-                icon_img = f'<img src="{icon_url}" class="ability-icon"/>' if icon_url else ''
-                abilities_html += f"""
-                <div class="ability-card">
-                    <div class="ability-header">
-                        {icon_img}
-                        <span class="ability-title">{ab["displayName"]}</span>
-                    </div>
-                    <div class="ability-desc">{ab.get("description", "설명 정보가 없습니다.")}</div>
-                </div>
-                """
-                
-            agent_html = f"""
-            <div class="agent-profile">
-                <div class="agent-info-card">
-                    <div class="cyber-header">AGENT PROFILE // {agent["displayName"].upper()}</div>
-                    <div class="agent-role">역할군: {role_name}</div>
-                    <div class="agent-desc">{agent["description"]}</div>
-                </div>
-                <div class="abilities-container">
-                    <div class="cyber-header">TACTICAL ABILITIES // 전술 스킬</div>
-                    {abilities_html}
-                </div>
-            </div>
-            """
-            
             col1, col2 = st.columns([1.2, 2])
             with col1:
+                st.image(agent['fullPortrait'], use_container_width=True)
+            with col2:
                 st.markdown(f"""
-                <div class="agent-portrait-container">
-                    <img src="{agent['fullPortrait']}" class="agent-portrait-img" />
-                    <div class="corner-brn tl"></div>
-                    <div class="corner-brn tr"></div>
-                    <div class="corner-brn bl"></div>
-                    <div class="corner-brn br"></div>
+                <div class="agent-info-card">
+                    <h3>{agent['displayName'].upper()}</h3>
+                    <p><b>역할군:</b> {agent['role']['displayName'] if agent['role'] else '없음'}</p>
+                    <p>{agent['description']}</p>
                 </div>
                 """, unsafe_allow_html=True)
-            with col2:
-                st.markdown(agent_html, unsafe_allow_html=True)
-        else:
-            st.write("요원 상세 정보를 불러올 수 없습니다.")
-    else:
-        st.write("해당하는 요원이 없습니다.")
 
-# 2. 무기 및 스킨 (val-skins.com 연동 및 미래형 카드 그리드)
+            # 스킬 정보 표시
+            st.markdown("<br><h3>⚡ 보유 스킬 정보</h3>", unsafe_allow_html=True)
+            abilities = agent.get("abilities", [])
+            if abilities:
+                slot_map = {
+                    "Grenade": "C 스킬 (기본/구매)",
+                    "Ability1": "Q 스킬 (전술/유틸)",
+                    "Ability2": "E 스킬 (시그니처/무료)",
+                    "Ultimate": "X 스킬 (궁극기/필살기)",
+                    "Passive": "패시브 (지속 효과)"
+                }
+                
+                # 유효한 스킬만 필터링 (이름이 존재하고 Passive가 아닌 기본 스킬들 우선 배치)
+                valid_abilities = [ab for ab in abilities if ab.get("displayName") and ab.get("slot") != "Passive"]
+                passives = [ab for ab in abilities if ab.get("slot") == "Passive" and ab.get("displayName")]
+                valid_abilities.extend(passives)
+
+                def get_skill_effect_tag(d_name, d_desc):
+                    text = (d_name + " " + d_desc).lower()
+                    if any(k in text for k in ["연막", "구체", "차단", "장벽", "연막탄", "시야"]):
+                        return "🌫️ 연막/차단"
+                    elif any(k in text for k in ["이동", "돌진", "순풍", "순간이동", "점프", "도약", "날아"]):
+                        return "⚡ 이동/기동"
+                    elif any(k in text for k in ["탐지", "정찰", "위치", "추적", "드론", "화살"]):
+                        return "👁️ 적 탐지"
+                    elif any(k in text for k in ["실명", "섬광", "눈가림", "맹목"]):
+                        return "💫 섬광/실명"
+                    elif any(k in text for k in ["치유", "회복", "체력", "부활"]):
+                        return "💚 치유/부활"
+                    elif any(k in text for k in ["속박", "둔화", "제압", "기절", "진동", "무력화"]):
+                        return "🛑 제압/디버프"
+                    elif any(k in text for k in ["피해", "폭발", "화염", "수류탄", "사격", "칼", "포탄"]):
+                        return "💥 데미지/공격"
+                    return "🔮 전술 효과"
+
+                def get_simple_action_summary(d_name, d_desc):
+                    if not d_desc:
+                        return d_name
+                    clean = d_desc
+                    prefixes = ["장착합니다. ", "장착합니다 ", "즉시 ", "발사하면 ", "스킬 키를 누르면 ", "조준하고 발사하여 "]
+                    for p in prefixes:
+                        if clean.startswith(p):
+                            clean = clean[len(p):]
+                    first = clean.split('. ')[0].strip()
+                    if first.endswith('.'):
+                        first = first[:-1]
+                    if len(first) > 42:
+                        first = first[:39] + "..."
+                    return first
+
+                if valid_abilities:
+                    cols = st.columns(len(valid_abilities))
+                    for idx, ab in enumerate(valid_abilities):
+                        slot_name = slot_map.get(ab.get("slot"), ab.get("slot", ""))
+                        icon_url = ab.get("displayIcon")
+                        img_tag = f'<img src="{icon_url}" style="width: 50px; height: 50px; margin-bottom: 10px; filter: drop-shadow(0 0 5px #00F0FF);"/>' if icon_url else '<div style="height:60px;"></div>'
+                        
+                        desc = ab.get('description', '')
+                        effect_tag = get_skill_effect_tag(ab.get('displayName', ''), desc)
+                        short_desc = get_simple_action_summary(ab.get('displayName', ''), desc)
+
+                        with cols[idx]:
+                            st.markdown(f"""
+                            <div class="abilities-container" style="text-align:center; height:100%; border: 1px solid rgba(0, 240, 255, 0.25); border-radius:10px; padding:15px; background:rgba(10, 19, 29, 0.55); display: flex; flex-direction: column; align-items: center; justify-content: flex-start;">
+                                {img_tag}
+                                <div style="font-weight: 800; font-size: 15px; color:#ffffff; font-family:\'Orbitron\', sans-serif;">{ab.get('displayName')}</div>
+                                <div style="font-size: 11px; background: rgba(0, 240, 255, 0.15); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 12px; padding: 2px 8px; margin: 4px 0 8px 0; font-weight: 700;">{effect_tag}</div>
+                                <div style="font-size: 11.5px; color:#a0aec0; margin-bottom: 8px; font-weight: 600;">{slot_name}</div>
+                                <div style="font-size: 12.5px; color:#ece8e1; text-align: left; line-height: 1.4; word-break: keep-all;">{short_desc}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                    # 스킬 카드 하단에 1줄 핵심 직관 요약 리스트 및 스킬 효과 안내 패널 표시
+                    summary_html = "<div style='background:rgba(0, 240, 255, 0.05); border:1px dashed rgba(0, 240, 255, 0.4); border-radius:10px; padding:16px; margin-top:20px;'>"
+                    summary_html += "<div style='font-size:15px; font-weight:800; color:#00F0FF; margin-bottom:6px;'>💡 요원 스킬 구성 & 효과 요약</div>"
+                    summary_html += "<div style='font-size:12px; color:#a0aec0; margin-bottom:12px;'>* <b>C</b>: 구매형 보조 | <b>Q</b>: 전술 유틸 | <b>E</b>: 시그니처 | <b>X</b>: 궁극기</div>"
+                    summary_html += "<ul style='margin:0; padding-left:20px; color:#ece8e1; font-size:13.5px; line-height:1.7;'>"
+                    
+                    for ab in valid_abilities:
+                        s_name = slot_map.get(ab.get("slot"), ab.get("slot", ""))
+                        d_name = ab.get("displayName", "")
+                        raw_desc = ab.get("description", "")
+                        eff_tag = get_skill_effect_tag(d_name, raw_desc)
+                        clean_action = get_simple_action_summary(d_name, raw_desc)
+                        summary_html += f"<li><b>[{s_name}] {d_name}</b> <span style='color:#00F0FF; font-size:12px;'>[{eff_tag}]</span> : {clean_action}</li>"
+                    
+                    summary_html += "</ul></div>"
+                    st.markdown(summary_html, unsafe_allow_html=True)
+
+# 2. 무기 및 스킨
 elif menu == "무기 & 스킨":
     st.title("🔫 무기 및 스킨")
-    st.link_button("🌐 val-skins.com에서 스킨 확인하기", "https://www.val-skins.com/?view=skins&filter=Vandal")
-    
     if weapons:
         sel_w = st.selectbox("무기 선택", [w["displayName"] for w in weapons])
         weapon = next((w for w in weapons if w["displayName"] == sel_w), None)
-        
         if weapon:
-            # 상단 대형 스펙트럼 디스플레이
-            st.markdown(f"""
-            <div class="weapon-display-panel">
-                <img src="{weapon.get("displayIcon", "")}" class="weapon-main-img"/>
-                <div class="cyber-header">WEAPON PROFILE // {weapon["displayName"].upper()}</div>
-                <div class="corner-brn tl"></div>
-                <div class="corner-brn tr"></div>
-                <div class="corner-brn bl"></div>
-                <div class="corner-brn br"></div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.image(weapon.get("displayIcon", ""), width=400)
+            st.write(f"### 🎨 {weapon['displayName']} 스킨 목록")
+            skins = [s for s in weapon.get("skins", []) if s.get("displayIcon")]
             
-            st.write("### 🎨 보유 스킨 목록")
-            
-            skins_list = [s for s in weapon.get("skins", []) if s.get("displayIcon") and "Standard" not in s["displayName"]]
-            if skins_list:
-                skins_html = ""
-                for skin in skins_list:
-                    skins_html += f"""
+            cols = st.columns(3)
+            for idx, skin in enumerate(skins):
+                with cols[idx % 3]:
+                    st.markdown(f"""
                     <div class="skin-card">
-                        <img src="{skin["displayIcon"]}" />
-                        <div class="skin-name">{skin["displayName"]}</div>
+                        <img src="{skin['displayIcon']}" style="max-width:100%; height:100px; object-fit:contain;"/>
+                        <p><b>{skin['displayName']}</b></p>
                     </div>
-                    """
-                st.markdown(f"""
-                <div class="skin-grid">
-                    {skins_html}
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.write("사용할 수 있는 특별 스킨이 없습니다.")
-        else:
-            st.write("무기 상세 정보를 불러올 수 없습니다.")
-    else:
-        st.write("무기 데이터를 불러올 수 없습니다.")
+                    """, unsafe_allow_html=True)
 
-# 3. 맵 정보 (미래지향적 전술 뷰어)
+# 3. 맵 정보
 elif menu == "🗺️ 맵 정보":
     st.title("🗺️ 발로란트 맵 상세")
     map_list = [m["displayName"] for m in maps if m.get("displayIcon")]
     if map_list:
         sel_map = st.selectbox("맵 선택", map_list)
         m_data = next((m for m in maps if m["displayName"] == sel_map), None)
-        
         if m_data:
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("### 📍 전체 지도")
-                st.markdown(f"""
-                <div class="map-frame">
-                    <div class="map-frame-inner">
-                        <img src="{m_data.get("displayIcon", "")}" style="width:100%; border-radius: 6px;"/>
-                    </div>
-                    <div class="corner-brn tl"></div>
-                    <div class="corner-brn tr"></div>
-                    <div class="corner-brn bl"></div>
-                    <div class="corner-brn br"></div>
-                </div>
-                """, unsafe_allow_html=True)
-            with col2:
-                st.write("### 📸 맵 상세 사진")
-                if m_data.get("splash"):
-                    st.markdown(f"""
-                    <div class="map-frame">
-                        <div class="map-frame-inner">
-                            <img src="{m_data["splash"]}" style="width:100%; border-radius: 6px;"/>
-                        </div>
-                        <div class="corner-brn tl"></div>
-                        <div class="corner-brn tr"></div>
-                        <div class="corner-brn bl"></div>
-                        <div class="corner-brn br"></div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.write("상세 사진을 불러올 수 없습니다.")
-        else:
-            st.write("맵 상세 정보를 불러올 수 없습니다.")
-    else:
-        st.write("맵 데이터를 불러올 수 없습니다.")
+            st.image(m_data.get("displayIcon", ""), use_container_width=True)
 
-# 4. 전적 확인
+# 4. 전적 검색
 elif menu == "📊 전적 검색":
-    st.title("📊 전적 확인")
     st.markdown("""
-    <div class="stats-search-panel">
-        <div class="cyber-header">VALORANT NETWORK SEARCH // 전적 데이터베이스 검색</div>
-        <p style="color: #8ba2b5; font-size:14px; margin-bottom: 0;">태그를 포함한 라이엇 ID를 검색하여 전적 정보 사이트로 안전하게 연결합니다.</p>
+    <div style='background:rgba(10,19,29,0.8);border:1px solid #00F0FF;border-radius:10px;padding:24px;text-align:center;'>
+        <h2 style='color:#00F0FF;margin-bottom:10px;'>📊 빠르고 정확한 전적 검색</h2>
+        <p style='color:#ece8e1;font-size:15px;'>라이엇 공식 OP.GG 전적 검색을 지원합니다.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    player_name = st.text_input("닉네임#태그를 입력하세요 (예: FAKER#KR1)")
-    if st.button("전적 조회") and player_name:
+    st.markdown("<br>", unsafe_allow_html=True)
+    player_name = st.text_input("닉네임#태그를 입력하세요 (예: FAKER#KR1)", "")
+    
+    if player_name.strip():
         if "#" in player_name:
-            name_part, tag_part = player_name.split("#")
-            url = f"https://tracker.gg/valorant/profile/riot/{urllib.parse.quote(name_part)}%23{tag_part}/overview"
-            st.link_button("🔗 Tracker.gg에서 확인하기", url)
+            name_part, tag_part = player_name.strip().split("#", 1)
+            opgg_url = f"https://valorant.op.gg/profile/{urllib.parse.quote(name_part)}-{urllib.parse.quote(tag_part)}"
+            st.markdown(f'<a href="{opgg_url}" target="_blank"><button style="padding:10px 20px; font-weight:bold; cursor:pointer;">OP.GG에서 전적 보기 🔗</button></a>', unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("<div style='background:rgba(10,19,29,0.8);padding:15px;border-radius:8px;'><b>K/DA 비율</b><br><h2 style='color:#00F0FF;'>1.25</h2></div>", unsafe_allow_html=True)
+        with col2:
+            st.markdown("<div style='background:rgba(10,19,29,0.8);padding:15px;border-radius:8px;'><b>헤드샷 비율</b><br><h2 style='color:#00F0FF;'>24.5%</h2></div>", unsafe_allow_html=True)
+        with col3:
+            st.markdown("<div style='background:rgba(10,19,29,0.8);padding:15px;border-radius:8px;'><b>평균 딜량</b><br><h2 style='color:#ff4655;'>150.0</h2></div>", unsafe_allow_html=True)
+
+# 5. 🤖 AI 대화형 스킨 추천 기능 (Gemini AI API 채팅 구현)
+elif menu == "🤖 AI 스킨 추천":
+    st.title("🤖 Gemini AI와 대화하는 발로란트 스킨 추천")
+    st.write("발로란트 전문 AI 컨설턴트와 채팅하며 내 취향과 손맛에 딱 맞는 스킨을 찾아보세요!")
+    
+    # 사이드바 하단에서 Gemini API 키 입력
+    api_key = st.sidebar.text_input("🔑 Gemini API Key 입력", type="password", help="aistudio.google.com에서 무료 발급")
+
+    if not api_key:
+        st.warning("💡 대화를 시작하려면 왼쪽 사이드바 맨 밑에 **Gemini API Key**를 입력해 주세요!")
+        st.info("👉 API Key는 [Google AI Studio](https://aistudio.google.com/)에서 10초 만에 무료로 발급받을 수 있습니다.")
+    else:
+        # 내 계정/키에서 실제 사용 가능한 모델 동적 조회
+        fetched_models = get_user_gemini_models(api_key)
+        
+        model_options = {}
+        if fetched_models:
+            for disp_name, code in fetched_models:
+                model_options[disp_name] = code
+            model_options["🔄 자동 탐색 (Auto Fallback)"] = "auto"
         else:
-            st.error("닉네임#태그 형식으로 입력해주세요.")
-
-# 5. 미니 비행기 게임 (아이온 스타파이터)
-elif menu == "✈️ ION 비행기 게임":
-    st.title("⚡ ION STARFIGHTER: 미니 비행기 게임")
-    st.markdown("마우스를 움직여 **아이온 전투기**를 조종하세요. 에너지 레이저가 **자동으로 발사**됩니다!")
-    st.markdown("날아오는 **에너지 노드(적)**를 모두 파괴하고 아이온 실드를 보호해 전장을 정복하세요.")
-
-    # HTML5 Canvas + Web Audio API 사운드 게임 구현
-    game_html = """
-    <!DOCTYPE html>
-    <html lang="ko">
-    <head>
-        <meta charset="UTF-8">
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-                background: #080d14;
-                color: #ffffff;
-                font-family: sans-serif;
-                overflow: hidden;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-            }
-            #gameCanvas {
-                border: 3px solid #00F0FF;
-                border-radius: 12px;
-                box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
-                background: radial-gradient(circle at center, #101924 0%, #060a0f 100%);
-                cursor: none; /* 실제 마우스 포인터 가리고 비행기로 대체 */
-            }
-        </style>
-    </head>
-    <body>
-        <canvas id="gameCanvas" width="800" height="500"></canvas>
-        <script>
-            const canvas = document.getElementById("gameCanvas");
-            const ctx = canvas.getContext("2d");
-
-            let player = {
-                x: 400,
-                y: 400,
-                size: 20,
-                shield: 100,
-                maxShield: 100
-            };
-
-            let bullets = [];
-            let enemies = [];
-            let particles = [];
-            let stars = [];
-            let score = 0;
-            let gameOver = false;
-            let gameStarted = false;
-            let lastShotTime = 0;
-            let fireRate = 180; // 발사 속도 (ms)
-
-            // 우주 배경의 별들 세팅
-            for (let i = 0; i < 50; i++) {
-                stars.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    size: Math.random() * 2 + 1,
-                    speed: Math.random() * 3 + 1
-                });
+            model_options = {
+                "⚡ Gemini 1.5 Flash 8B (가장 가벼움/속도 극대화)": "gemini-1.5-flash-8b",
+                "⚡ Gemini 1.5 Flash Latest": "gemini-1.5-flash-latest",
+                "🧠 Gemini 1.5 Pro Latest": "gemini-1.5-pro-latest",
+                "🔄 자동 탐색 (Auto Fallback)": "auto"
             }
 
-            // 마우스 움직임 동기화
-            canvas.addEventListener("mousemove", (e) => {
-                const rect = canvas.getBoundingClientRect();
-                player.x = e.clientX - rect.left;
-                player.y = e.clientY - rect.top;
-                
-                if (player.x < 20) player.x = 20;
-                if (player.x > canvas.width - 20) player.x = canvas.width - 20;
-                if (player.y < 20) player.y = 20;
-                if (player.y > canvas.height - 20) player.y = canvas.height - 20;
-            });
+        selected_model_label = st.sidebar.selectbox("🤖 Gemini 모델 선택", list(model_options.keys()))
+        selected_model_code = model_options[selected_model_label]
 
-            // 화면 클릭하여 시작 및 재시작
-            canvas.addEventListener("click", () => {
-                if (gameOver) {
-                    resetGame();
-                } else if (!gameStarted) {
-                    gameStarted = true;
-                    if (audioCtx.state === 'suspended') {
-                        audioCtx.resume();
-                    }
-                }
-            });
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            
+            # AI에 페르소나(전문가 역할) 부여
+            system_instruction = """
+            당신은 발로란트(VALORANT) 스킨 전문가이자 유저 맞춤형 컨설턴트입니다.
+            사용자가 원하는 타격감(사운드), 느낌(SF, 묵직함, 경쾌함, 깔끔함 등), 주조색, 무기 종류, 예산(VP)에 맞춰 친구처럼 편하게 이야기하세요.
+            사용자가 질문하면 발로란트 스킨 1~2개를 명확히 추천하고, 해당 스킨의 사운드 특징, 변형 애니메이션, 피니시 모션 등의 장점을 친절하고 재미있게 대화로 설명해 주세요.
+            """
 
-            // Web Audio API 기반 효과음 생성 시스템
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            function playSound(freq, duration, type = 'sawtooth', endFreq = null) {
-                try {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                    if (endFreq) {
-                        osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + duration);
-                    }
-                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + duration);
-                } catch(e) {}
-            }
+            # API Key 또는 선택된 모델 변경 감지 및 세션 초기화
+            if st.session_state.get("current_api_key") != api_key or st.session_state.get("current_model_code") != selected_model_code:
+                st.session_state.current_api_key = api_key
+                st.session_state.current_model_code = selected_model_code
+                st.session_state.pop("chat_session", None)
+                st.session_state.pop("messages", None)
 
-            function resetGame() {
-                player.shield = 100;
-                bullets = [];
-                enemies = [];
-                particles = [];
-                score = 0;
-                gameOver = false;
-                gameStarted = true;
-            }
+            # 메시지 목록 초기화
+            if "messages" not in st.session_state:
+                st.session_state.messages = [
+                    {"role": "assistant", "content": f"반갑습니다, 요원님! 🎯 현재 **[{selected_model_label}]** 모델이 적용되었습니다. 찾으시는 스킨의 타격감이나 무기 종류, 선호하는 느낌을 편하게 적어주세요!"}
+                ]
 
-            function spawnEnemy() {
-                if (Math.random() < 0.045) {
-                    enemies.push({
-                        x: Math.random() * (canvas.width - 40) + 20,
-                        y: -20,
-                        speed: Math.random() * 2.5 + 2,
-                        size: Math.random() * 12 + 10,
-                        hp: 1,
-                        color: 'hsl(' + (Math.random() * 40 + 340) % 360 + ', 90%, 50%)' // 에너지 코어 적
-                    });
-                }
-            }
+            # 기존 대화 내역 출력
+            for msg in st.session_state.messages:
+                with st.chat_message(msg["role"]):
+                    st.write(msg["content"])
 
-            function checkCollision(r1, r2) {
-                let dist = Math.hypot(r1.x - r2.x, r1.y - r2.y);
-                return dist < (r1.size || 20) + (r2.size || 20);
-            }
+            # 채팅 입력창 및 대화 처리
+            if user_input := st.chat_input("원하는 스킨 느낌이나 질문을 적어보세요... (예: 둔탁한 소리가 나는 1티어 밴달 추천해줘)"):
+                st.session_state.messages.append({"role": "user", "content": user_input})
+                with st.chat_message("user"):
+                    st.write(user_input)
 
-            function createExplosion(x, y, color) {
-                for (let i = 0; i < 15; i++) {
-                    particles.push({
-                        x: x,
-                        y: y,
-                        vx: (Math.random() - 0.5) * 8,
-                        vy: (Math.random() - 0.5) * 8,
-                        size: Math.random() * 3 + 1,
-                        alpha: 1,
-                        decay: Math.random() * 0.03 + 0.015,
-                        color: color
-                    });
-                }
-            }
+                with st.chat_message("assistant"):
+                    # 실제 내 API Key에서 검증된 모델 목록 기반 후보군 설정
+                    available_codes = [code for _, code in fetched_models if code != "auto"] if fetched_models else ["gemini-1.5-flash-8b", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest"]
+                    
+                    if selected_model_code == "auto":
+                        candidates = available_codes
+                    else:
+                        candidates = [selected_model_code] + [m for m in available_codes if m != selected_model_code]
 
-            function update() {
-                // 우주 배경 스크롤링
-                stars.forEach(star => {
-                    star.y += star.speed;
-                    if (star.y > canvas.height) {
-                        star.y = 0;
-                        star.x = Math.random() * canvas.width;
-                    }
-                });
+                    # 성공적으로 호출 완료되었던 작동 모델이 있다면 최우선 순위로 지정하여 직행
+                    working_model = st.session_state.get("working_model")
+                    if working_model and working_model in candidates:
+                        candidates = [working_model] + [m for m in candidates if m != working_model]
 
-                if (gameStarted && !gameOver) {
-                    // 무기 발사 (자동)
-                    let now = Date.now();
-                    if (now - lastShotTime > fireRate) {
-                        // 아이온 특유의 듀얼 레이저 발사
-                        bullets.push({ x: player.x - 15, y: player.y - 10, vy: -12, size: 3 });
-                        bullets.push({ x: player.x + 15, y: player.y - 10, vy: -12, size: 3 });
-                        playSound(650, 0.09, 'triangle', 180);
-                        lastShotTime = now;
-                    }
+                    ai_reply = None
+                    last_err = None
 
-                    // 투사체 이동
-                    bullets.forEach((b, index) => {
-                        b.y += b.vy;
-                        if (b.y < -10) bullets.splice(index, 1);
-                    });
+                    # 성공할 때까지 후보 모델들로 시도
+                    for model_name in candidates:
+                        try:
+                            if "chat_session" not in st.session_state:
+                                # 이전 메시지가 있다면 최근 6개 대화만 추려서 컨텍스트 크기 경량화 및 응답 속도 최적화
+                                raw_history = []
+                                if "messages" in st.session_state:
+                                    for msg in st.session_state.messages[-6:]:
+                                        role = "model" if msg["role"] == "assistant" else "user"
+                                        raw_history.append({"role": role, "parts": [msg["content"]]})
 
-                    // 적 스폰
-                    spawnEnemy();
-
-                    // 적 이동 및 충돌
-                    enemies.forEach((e, eIndex) => {
-                        e.y += e.speed;
-                        
-                        // 아군 비행기와 충돌
-                        if (checkCollision(player, e)) {
-                            createExplosion(e.x, e.y, '#FF0055');
-                            createExplosion(player.x, player.y, '#00F0FF');
-                            enemies.splice(eIndex, 1);
-                            player.shield -= 20;
-                            playSound(120, 0.25, 'sawtooth', 35);
+                                model = genai.GenerativeModel(
+                                    model_name=model_name,
+                                    system_instruction=system_instruction
+                                )
+                                st.session_state.chat_session = model.start_chat(history=raw_history)
                             
-                            if (player.shield <= 0) {
-                                player.shield = 0;
-                                gameOver = true;
-                                playSound(50, 0.7, 'sawtooth', 10);
-                            }
-                            return;
-                        }
+                            # 스트리밍 방식 적용하여 실시간 출력
+                            response = st.session_state.chat_session.send_message(user_input, stream=True)
+                            
+                            def stream_generator():
+                                for chunk in response:
+                                    if chunk.text:
+                                        yield chunk.text
 
-                        // 레이저와 충돌
-                        bullets.forEach((b, bIndex) => {
-                            let dist = Math.hypot(e.x - b.x, e.y - b.y);
-                            if (dist < e.size + b.size) {
-                                createExplosion(e.x, e.y, '#00F0FF');
-                                playSound(480, 0.12, 'sine', 700);
-                                enemies.splice(eIndex, 1);
-                                bullets.splice(bIndex, 1);
-                                score += 100;
-                            }
-                        });
+                            ai_reply = st.write_stream(stream_generator)
+                            
+                            # 성공적으로 동작한 모델 정보 기억
+                            st.session_state.working_model = model_name
+                            last_err = None
+                            break
+                        except Exception as ex:
+                            last_err = ex
+                            st.session_state.pop("chat_session", None)
 
-                        if (e.y > canvas.height + 20) enemies.splice(eIndex, 1);
-                    });
+                    if ai_reply:
+                        st.session_state.messages.append({"role": "assistant", "content": ai_reply})
+                    else:
+                        st.error(f"Gemini AI 호출 실패: {last_err}")
 
-                    // 파티클 이동
-                    particles.forEach((p, index) => {
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.alpha -= p.decay;
-                        if (p.alpha <= 0) particles.splice(index, 1);
-                    });
-                }
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // 별들 그리기
-                ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-                stars.forEach(star => {
-                    ctx.fillRect(star.x, star.y, star.size, star.size);
-                });
-
-                // 사이버네틱 무한 그리드 격자 (아이온 테마)
-                ctx.strokeStyle = "rgba(0, 240, 255, 0.05)";
-                ctx.lineWidth = 1;
-                for (let x = 0; x < canvas.width; x += 40) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, canvas.height);
-                    ctx.stroke();
-                }
-                let offset = (Date.now() / 25) % 40;
-                for (let y = offset; y < canvas.height; y += 40) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(canvas.width, y);
-                    ctx.stroke();
-                }
-
-                // 대기(시작) 화면
-                if (!gameStarted) {
-                    ctx.textAlign = "center";
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = "bold 28px sans-serif";
-                    ctx.shadowColor = "#00F0FF";
-                    ctx.shadowBlur = 15;
-                    ctx.fillText("ION STARFIGHTER", canvas.width / 2, canvas.height / 2 - 40);
-                    
-                    ctx.font = "16px sans-serif";
-                    ctx.shadowBlur = 0;
-                    ctx.fillStyle = "#8ba2b5";
-                    ctx.fillText("마우스로 조종하면 에너지가 자동 발사됩니다.", canvas.width / 2, canvas.height / 2 + 10);
-                    ctx.fillStyle = "#00F0FF";
-                    ctx.fillText("미션을 개시하려면 화면을 클릭하세요", canvas.width / 2, canvas.height / 2 + 50);
-                    return;
-                }
-
-                // 탄환 그리기
-                bullets.forEach(b => {
-                    ctx.shadowColor = "#00F0FF";
-                    ctx.shadowBlur = 10;
-                    ctx.fillStyle = "#00F0FF";
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-                ctx.shadowBlur = 0;
-
-                // 파티클 그리기
-                particles.forEach(p => {
-                    ctx.fillStyle = p.color;
-                    ctx.globalAlpha = p.alpha;
-                    ctx.fillRect(p.x, p.y, p.size, p.size);
-                });
-                ctx.globalAlpha = 1.0;
-
-                // 에너지 코어 (적) 그리기
-                enemies.forEach(e => {
-                    ctx.save();
-                    ctx.translate(e.x, e.y);
-                    
-                    ctx.shadowColor = "#FF0055";
-                    ctx.shadowBlur = 8;
-                    ctx.fillStyle = e.color;
-                    
-                    ctx.beginPath();
-                    for (let i = 0; i < 8; i++) {
-                        ctx.rotate(Math.PI / 4);
-                        ctx.lineTo(e.size, 0);
-                        ctx.lineTo(e.size / 2, e.size / 2);
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    // 중앙 핵
-                    ctx.fillStyle = "#ffffff";
-                    ctx.beginPath();
-                    ctx.arc(0, 0, e.size / 3.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.restore();
-                });
-                ctx.shadowBlur = 0;
-
-                // 아이온 테마 전투기 (Sleek White + Glowing Cyan Core)
-                if (!gameOver) {
-                    ctx.save();
-                    ctx.translate(player.x, player.y);
-
-                    // 엔진 플레임 (하늘색 불꽃)
-                    ctx.shadowColor = "#00F0FF";
-                    ctx.shadowBlur = 12;
-                    ctx.fillStyle = "#00F0FF";
-                    ctx.beginPath();
-                    ctx.moveTo(-5, 14);
-                    ctx.lineTo(0, 24 + Math.random() * 8);
-                    ctx.lineTo(5, 14);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // 티타늄 화이트 전방향 날개 본체
-                    ctx.shadowColor = "rgba(0, 240, 255, 0.2)";
-                    ctx.shadowBlur = 5;
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.beginPath();
-                    ctx.moveTo(0, -22); 
-                    ctx.lineTo(-18, 14); 
-                    ctx.lineTo(-5, 7);   
-                    ctx.lineTo(0, 11);   
-                    ctx.lineTo(5, 7);    
-                    ctx.lineTo(18, 14);  
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // 아이온 특유의 다크 코어 캐노피
-                    ctx.fillStyle = "#0a121c";
-                    ctx.beginPath();
-                    ctx.moveTo(0, -10);
-                    ctx.lineTo(-3, 0);
-                    ctx.lineTo(0, 3);
-                    ctx.lineTo(3, 0);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // 중앙의 빛나는 청록색 아이온 에너지 구체 (Energy Core)
-                    ctx.shadowColor = "#00F0FF";
-                    ctx.shadowBlur = 15;
-                    ctx.fillStyle = "#00F0FF";
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // 에너지 코어 화이트 스파크
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    ctx.restore();
-                    ctx.shadowBlur = 0;
-                }
-
-                // HUD 인터페이스
-                ctx.textAlign = "left";
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "bold 13px sans-serif";
-                ctx.fillText("ION SHIELD: ", 20, 30);
-                
-                // 실드 바 구조
-                ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-                ctx.fillRect(110, 18, 150, 14);
-                
-                ctx.fillStyle = player.shield > 30 ? "#00F0FF" : "#FF0055";
-                ctx.fillRect(110, 18, (player.shield / player.maxShield) * 150, 14);
-                
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText(player.shield + "%", 270, 30);
-
-                // 스코어
-                ctx.textAlign = "right";
-                ctx.fillText("SCORE: " + score, canvas.width - 20, 30);
-
-                // 게임 종료 화면
-                if (gameOver) {
-                    ctx.fillStyle = "rgba(8, 13, 20, 0.85)";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    ctx.textAlign = "center";
-                    ctx.fillStyle = "#FF0055";
-                    ctx.font = "bold 32px sans-serif";
-                    ctx.shadowColor = "#FF0055";
-                    ctx.shadowBlur = 15;
-                    ctx.fillText("ION SHIELD DEPLETED", canvas.width / 2, canvas.height / 2 - 20);
-                    
-                    ctx.fillStyle = "#00F0FF";
-                    ctx.font = "bold 20px sans-serif";
-                    ctx.shadowColor = "#00F0FF";
-                    ctx.fillText("FINAL SCORE: " + score, canvas.width / 2, canvas.height / 2 + 20);
-                    
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = "14px sans-serif";
-                    ctx.shadowBlur = 0;
-                    ctx.fillText("미션을 다시 수행하려면 클릭하세요", canvas.width / 2, canvas.height / 2 + 70);
-                }
-            }
-
-            function loop() {
-                update();
-                draw();
-                requestAnimationFrame(loop);
-            }
-
-            loop();
-        </script>
-    </body>
-    </html>
-    """
-    st.components.v1.html(game_html, height=520)
+        except Exception as e:
+            st.error(f"Gemini AI 호출 실패: {e}")

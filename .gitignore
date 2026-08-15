@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+opgg_out.txt
+out.txt
